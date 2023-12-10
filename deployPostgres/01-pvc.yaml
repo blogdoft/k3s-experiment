@@ -10,7 +10,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: longhorn-fast
+  storageClassName: longhorn
   capacity:
     storage: 8Gi
   accessModes:
@@ -26,7 +26,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: longhorn-fast
+  storageClassName: longhorn
   resources:
     requests:
       storage: 8Gi
