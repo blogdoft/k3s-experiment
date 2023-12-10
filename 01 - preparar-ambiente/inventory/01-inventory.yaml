@@ -4,6 +4,8 @@ controller:
       ansible_host: 192.168.1.145 
       ansible_user: ftathiago
       ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
+      var_disk: sda
+      var_disk_uuid: d991408b-e394-4140-9af9-ba56bc631136      
 workers:
   vars:
     cluster_token: K100ae08a2cfe9c5ef45887c07b948572e2544f93f9b8909d4594025b2f120c2236::server:e33512e1db3e3ae869fac3c197b6fa2e
@@ -17,6 +19,6 @@ workers:
     worker2:
       ansible_host: 192.168.1.147
       ansible_user: ftathiago
-      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
+      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'      
       var_disk: sda
       var_disk_uuid: f382cd84-d639-4f9e-8df8-9b2f3a7a3870

@@ -1,4 +1,4 @@
-# #!/bin/bash
+#!/bin/bash
 
 kubectl create namespace redis-server
 

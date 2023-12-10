@@ -1,5 +1,5 @@
 ---
-- name: Update SO
+- name: Uninstalling Controller
   hosts: controller
   become: yes
   gather_facts: no  

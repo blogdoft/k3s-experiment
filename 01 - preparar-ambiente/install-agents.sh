@@ -4,12 +4,10 @@ ansible-playbook 03-install-agent.yaml -i ./inventory/01-inventory.yaml
 
 kubectl label nodes worker1 kubernetes.io/role=worker
 kubectl label nodes worker2 kubernetes.io/role=worker
-kubectl label nodes controller kubernetes.io/role=worker
 kubectl label nodes worker1 node-type=worker
 kubectl label nodes worker2 node-type=worker
-kubectl label nodes controller node-type=worker
 
-# ## Install ingress
+# # ## Install ingress
 echo
 echo "Instalando o Ingress"
 helm upgrade --install ingress-nginx ingress-nginx \
@@ -19,7 +17,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
 kubectl wait --namespace ingress-nginx \
   --for=condition=ready pod \
   --selector=app.kubernetes.io/component=controller \
-  --timeout=120s
+  --timeout=200s
 
 echo
 echo "Reiniciando o cluster"

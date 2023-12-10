@@ -1,8 +1,12 @@
 - name: Prepare Disk
-  hosts: workers
+  hosts: controller
   become: yes
   gather_facts: no
   tasks:
+    - name: Discover disks
+      shell: "lsblk -f"
+      register: disk_list
+    - debug: var=disk_list.stdout_lines
     - name: Wipe disks
       shell: "wipefs -a /dev/{{ var_disk }}"
     - name: Set filesystem
@@ -13,11 +17,17 @@
       shell: "blkid -s UUID -o value /dev/{{ var_disk }}"
       register: uuid_disk
     - debug: var=uuid_disk.stdout_lines
-    # - name: Mount disks
-    #   ansible.posix.mount:
-    #     path: /storage01
-    #     src: UUID={{ var_disk_uuid }} 
-    #     fstype: ext4 
-    #     state: mounted
-    #   register: mount_disk
-    # - debug: var=mount_disk
+    - name: Mount disks
+      ansible.posix.mount:
+        path: /storage02
+        src: UUID={{ var_disk_uuid }} 
+        fstype: ext4 
+        state: mounted
+      register: mount_disk
+    - debug: var=mount_disk
+    - name: UnMount disks
+      ansible.posix.mount:
+        path: /storage01
+        state: unmounted
+      register: unmount_disk
+    - debug: var=unmount_disk

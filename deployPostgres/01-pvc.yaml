@@ -12,7 +12,7 @@ metadata:
 spec:
   storageClassName: longhorn-fast
   capacity:
-    storage: 5Gi
+    storage: 8Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
@@ -29,4 +29,4 @@ spec:
   storageClassName: longhorn-fast
   resources:
     requests:
-      storage: 5Gi
+      storage: 8Gi
