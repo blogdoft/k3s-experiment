@@ -19,7 +19,7 @@ spec:
       containers:
         - name: redis-server
           image: redis
-          args: ["--appendonly", "yes"]
+          args: ["--appendonly", "yes", "--requirepass", "eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81"]
           ports:
             - name: redis-server
               containerPort: 6379
@@ -27,8 +27,8 @@ spec:
             - name: lv-storage
               mountPath: /data
           env:
-              - name: ALLOW_EMPTY_PASSWORD
-                value: "yes"
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
           resources:
             requests:
               cpu: 100m

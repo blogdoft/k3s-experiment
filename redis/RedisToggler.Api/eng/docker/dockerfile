@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/dotnet/aspnet:6.0.23-jammy-arm32v7 AS runtime
+ARG PUBLISH_FOLDER=app/
+WORKDIR /app
+COPY ${PUBLISH_FOLDER} .
+EXPOSE 80
+EXPOSE 443
+ENTRYPOINT ["dotnet", "RedisToggler.Api.dll"]

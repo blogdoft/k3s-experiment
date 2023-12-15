@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $NAMESPACE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-toggler-deploy
+  namespace: $NAMESPACE
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: redis-toggler-deploy
+  template:
+    metadata:
+      labels:
+        name: redis-toggler-deploy
+    spec:
+      containers:
+        - image: ${HOSTNAME}:5000/${DOCKER_REPOSITORYNAME}:${DOCKER_IMAGETAG}
+          name: ${DOCKER_REPOSITORYNAME}
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 80
+            name: api
+          envFrom:
+            - configMapRef:
+                name: redis-toggler-configmap
+            - secretRef:
+                name: redis-toggler-secrets
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - key: "kubernetes.azure.com/scalesetpriority"
+          operator: "Equal"
+          value: "spot"
+          effect: "NoSchedule"
+      nodeSelector:
+        node-type: worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  revisionHistoryLimit: 3              
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-toggler-service
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    name: redis-toggler-deploy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-toggler-configmap
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  ASPNETCORE_BASEURL: "/api/"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-toggler-secrets
+type: Opaque
+stringData:
+  ConnectionStrings__Default: ${DATABASE_CONNECTIONSTRING}
+  # Keycloak__Secret: ${KeycloakSecret}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redis-toggler-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  rules:
+    - host: redis-toggler.local.dev
+      http:
+        paths:
+          - path: /(api/health)
+            pathType: Prefix
+            backend:
+              service:
+                name: redis-toggler-service
+                port:
+                  number: 80
+
+          - path: /api/(swagger.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: redis-toggler-service
+                port:
+                  number: 80
+
+          - path: /api/(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: redis-toggler-service
+                port:
+                  number: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis-server-ref
+  namespace: $NAMESPACE
+spec:
+  type: ExternalName
+  externalName: redis-server.redis-server.svc.cluster.local
+  ports:
+  - port: 6379

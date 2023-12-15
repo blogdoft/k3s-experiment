@@ -1,0 +1,26 @@
+﻿version: "3.4"
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  pg-data:
+
+services:
+  redis-toggler-api:
+    build:
+      context: ../../
+      dockerfile: ./eng/docker/dockerfile
+      args:
+        - PUBLISH_FOLDER=app/
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_BASEURL=/api
+    # env_file:
+    #   - dev.env
+    ports:
+      - 8080:80
+    networks:
+      - backend

@@ -1,0 +1,21 @@
+---
+- name: Adicionar linha ao arquivo /etc/hosts
+  hosts: all
+  become: yes
+  gather_facts: no  
+  tasks:
+    - name: Verificar se a linha já está presente
+      become: yes
+      shell: |
+        linha="192.168.1.145 registry registry.cube.local"
+        echo Update "/etc/hosts" local
+        if grep -qF "$linha" /etc/hosts; then
+            echo "A linha já está presente no arquivo."
+        else
+            # Adicione a linha ao final do arquivo
+            echo "$linha" | sudo tee -a /etc/hosts > /dev/null
+            echo "Linha adicionada ao arquivo."
+        fi
+      register: grep_result
+
+    - debug: var=grep_result.stdout_lines[1]

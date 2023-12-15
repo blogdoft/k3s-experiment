@@ -1,0 +1,9 @@
+mirrors:
+  registry.cube.local:5000:
+    endpoint:
+      - "https://registry.cube.local:5000"
+configs:
+  registry.cube.local:
+    tls:
+      ca_file: "/usr/local/share/ca-certificates/registry.crt"
+      key_file: "/usr/local/share/ca-certificates/registry.key"
