@@ -83,8 +83,7 @@ metadata:
   name: redis-toggler-secrets
 type: Opaque
 stringData:
-  ConnectionStrings__Default: Server=postgres-server.postgres.svc.local;Port=5432;Database=WebApiDB;User Id=postgres;Password=sXuHt8362Q;
-  # Keycloak__Secret: 
+  ConnectionStrings__Default: Server=postgres-server.postgres.svc.local;Port=5432;Database=WebApiDB;User Id=postgres;Password=7frbQEXuZH;
 
 ---
 apiVersion: networking.k8s.io/v1
