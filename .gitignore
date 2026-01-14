@@ -1,0 +1,7 @@
+.env
+**/*.crt
+**/*.key
+**/*.pem
+argocd/repo-secret.generated.yaml
+repomix*
+*repomix-output.json

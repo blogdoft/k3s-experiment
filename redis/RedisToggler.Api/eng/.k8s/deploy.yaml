@@ -3,6 +3,28 @@ kind: Namespace
 metadata:
   name: $NAMESPACE
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-toggler-configmap
+  namespace: $NAMESPACE
+data:
+  ASPNETCORE_ENVIRONMENT: "Development"
+  ASPNETCORE_BASEURL: "/api"
+  ASPNETCORE_URLS: "http://0.0.0.0:80"
+  ASPNETCORE_HTTP_PORTS: "80"
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "0"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-toggler-secrets
+  namespace: $NAMESPACE
+type: Opaque
+stringData:
+  ConnectionStrings__Default: ${DATABASE_CONNECTIONSTRING}
+  # Keycloak__Secret: ${KeycloakSecret}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,12 +41,12 @@ spec:
         name: redis-toggler-deploy
     spec:
       containers:
-        - image: ${HOSTNAME}:5000/${DOCKER_REPOSITORYNAME}:${DOCKER_IMAGETAG}
+        - image: ${HOSTNAME}/${DOCKER_REPOSITORYNAME}:${DOCKER_IMAGETAG}
           name: ${DOCKER_REPOSITORYNAME}
           imagePullPolicy: Always
           ports:
-          - containerPort: 80
-            name: api
+            - containerPort: 80
+              name: api
           envFrom:
             - configMapRef:
                 name: redis-toggler-configmap
@@ -32,11 +54,11 @@ spec:
                 name: redis-toggler-secrets
           resources:
             requests:
-              cpu: "50m"
-              memory: "32Mi"
-            limits:
               cpu: "100m"
               memory: "128Mi"
+            limits:
+              cpu: "2"
+              memory: "516Mi"
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -47,19 +69,34 @@ spec:
           operator: "Equal"
           value: "spot"
           effect: "NoSchedule"
-      nodeSelector:
-        node-type: worker
+      # nodeSelector:
+      #   node-type: worker
+      #   kubernetes.io/arch: arm64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - arm64
+                  - key: node-type
+                    operator: In
+                    values:
+                      - worker
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
-  revisionHistoryLimit: 3              
+  revisionHistoryLimit: 3
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: redis-toggler-service
+  namespace: $NAMESPACE
 spec:
   ports:
     - port: 80
@@ -69,53 +106,63 @@ spec:
     name: redis-toggler-deploy
   type: ClusterIP
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: redis-toggler-configmap
-data:
-  ASPNETCORE_ENVIRONMENT: "Development"
-  ASPNETCORE_BASEURL: "/api/"
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: redis-toggler-secrets
-type: Opaque
-stringData:
-  ConnectionStrings__Default: ${DATABASE_CONNECTIONSTRING}
-  # Keycloak__Secret: ${KeycloakSecret}
-
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: redis-toggler-ingress
+  namespace: $NAMESPACE
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
 spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - redis-toggler.home.arpa
+      secretName: wildcard-home-arpa
   rules:
-    - host: redis-toggler.local.dev
+    - host: redis-toggler.home.arpa
       http:
         paths:
-          - path: /(api/health)
+          - path: /api/health
             pathType: Prefix
             backend:
               service:
                 name: redis-toggler-service
                 port:
                   number: 80
+---
+# Traefik Middleware to strip the /api prefix for API routes
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api
+  namespace: $NAMESPACE
+spec:
+  stripPrefix:
+    prefixes:
+      - /api
 
-          - path: /api/(swagger.*)
-            pathType: Prefix
-            backend:
-              service:
-                name: redis-toggler-service
-                port:
-                  number: 80
-
-          - path: /api/(.*)
+---
+# Ingress that applies the StripPrefix middleware to all /api/* paths
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redis-toggler-ingress-api
+  namespace: $NAMESPACE
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: "$NAMESPACE-strip-api@kubernetescrd"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - redis-toggler.home.arpa
+      secretName: wildcard-home-arpa  
+  rules:
+    - host: redis-toggler.home.arpa
+      http:
+        paths:
+          - path: /api/
             pathType: Prefix
             backend:
               service:
@@ -132,4 +179,4 @@ spec:
   type: ExternalName
   externalName: redis-server.redis-server.svc.cluster.local
   ports:
-  - port: 6379
+    - port: 6379

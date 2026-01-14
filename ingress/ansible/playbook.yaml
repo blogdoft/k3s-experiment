@@ -1,0 +1,45 @@
+---
+- name: Instala CA do mkcert em todos os nodes do cluster
+  hosts:
+    - controller
+    - workers
+  become: yes
+
+  vars:
+    ca_source_file: "home-arpa-ca.crt"
+    ca_dest_path: "/usr/local/share/ca-certificates/home-arpa-ca.crt"
+    ca_ssl_path: "/etc/ssl/certs/home-arpa-ca.crt"
+
+  tasks:
+    - name: Copia CA do mkcert para o node
+      copy:
+        src: "files/{{ ca_source_file }}"
+        dest: "{{ ca_dest_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create SSL certs directory
+      file:
+        path: "{{ ca_ssl_path | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copia CA do mkcert para o node (SSL)
+      copy:
+        src: "files/{{ ca_source_file }}"
+        dest: "{{ ca_ssl_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Atualiza CA store do sistema
+      command: update-ca-certificates
+      register: ca_update
+      changed_when: "'0 added, 0 removed' not in ca_update.stdout"
+
+    - name: Mostra resumo da atualização da CA
+      debug:
+        var: ca_update.stdout

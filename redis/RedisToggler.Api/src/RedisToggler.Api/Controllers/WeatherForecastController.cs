@@ -42,7 +42,7 @@ public class WeatherForecastController : ControllerBase
             obj = await _cache.GetAsync(key, () => Task.FromResult(obj)!);
             await _cache.SetAsync(key, obj);
         }
-
+        _logger.LogInformation("WeatherForecast retrieved.");
         return obj!;
     }
 }

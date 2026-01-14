@@ -2,14 +2,21 @@ all:
   vars:
     K3S_TOKEN: '{{ lookup("env", "K3S_TOKEN") }}'
     cluster_token: ""
+    # Configurações do banco de dados para k3s
+    k3s_db_user: '{{ lookup("env", "K3S_DB_USER") }}'
+    k3s_db_password: '{{ lookup("env", "K3S_DB_PASSWORD") }}'
+    k3s_db_host: "192.168.1.212"
+    k3s_db_port: "5432"
+    k3s_db_name: "k3s"
+    k3s_bind_address: "192.168.1.212"
 controller:
   hosts:
     morgul:
       ansible_host: morgul
       ansible_connection: ssh
       ansible_user: sauron
-      ansible_password: '{{ lookup("env", "ANSIBLE_MORGUL") }}'
-      ansible_become_password: '{{ lookup("env", "ANSIBLE_MORGUL") }}'
+      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
+      ansible_become_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
       var_disk: sda
       var_uuid: e9c01c2b-8330-46bc-aeed-a8fa5f696e2c
 
