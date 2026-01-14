@@ -2,11 +2,12 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "dotnet-format": {
-      "version": "5.1.250801",
+    "dotnet-outdated-tool": {
+      "version": "4.6.4",
       "commands": [
-        "dotnet-format"
-      ]
+        "dotnet-outdated"
+      ],
+      "rollForward": false
     }
   }
 }

@@ -1,0 +1,29 @@
+- name: Show token at controller
+  hosts: controller
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Run k3s script      
+      shell: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.27.2+k3s1 sh -s - --write-kubeconfig-mode 644 --bind-address 192.168.1.212
+      environment:
+        K3S_TOKEN: "{{ K3S_TOKEN }}"
+      register: k3s_script_controller
+    - debug: var=k3s_script_controller.stdout_lines
+    - name: Show Token
+      shell: cat /var/lib/rancher/k3s/server/token
+      register: show_token_output
+    - name: Propagate token to workers
+      run_once: true
+      add_host:
+        name: k3s_token_holder
+        groups: token_holder
+        K3S_TOKEN: "{{ show_token_output.stdout }}"
+
+- name: Instalar o agente
+  hosts: workers
+  gather_facts: yes
+  tasks:    
+    - name: Show as echo
+      shell: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.26.9+k3s1 K3S_URL=https://192.168.1.145:6443 K3S_TOKEN="{{ hostvars['k3s_token_holder'].K3S_TOKEN }}" sh -
+      register: agent_output
+    - debug: var=agent_output.stdout

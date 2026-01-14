@@ -1,0 +1,73 @@
+- name: Install git on Controller
+  hosts: controller
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Installing git-all
+      ansible.builtin.apt:
+        pkg:
+          - git-all
+
+- name: Install k3s on Controller
+  hosts: controller
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Run k3s script      
+      shell: >
+        curl -sfL https://get.k3s.io | sh -s - 
+        --write-kubeconfig-mode 644 
+        --bind-address {{ k3s_bind_address }} 
+        --disable-cloud-controller 
+        --disable local-storage 
+        --datastore-endpoint='postgres://{{ k3s_db_user }}:{{ k3s_db_password }}@{{ k3s_db_host }}:{{ k3s_db_port }}/{{ k3s_db_name }}?sslmode=disable'
+      register: k3s_script_controller
+      async: 120  # Timeout de 2 minutos (120 segundos)
+      poll: 10    # Verifica o status a cada 10 segundos
+    - debug: var=k3s_script_controller.stdout_lines
+    
+    - name: Get app token
+      shell: cat /var/lib/rancher/k3s/server/token
+      register: cluster_token
+    - debug: var=cluster_token.stdout
+    
+    - name: Create ~/.kube directory
+      ansible.builtin.file:
+        path: /root/.kube
+        state: directory
+        mode: "0700"
+        
+    - name: Install kubeconfig for root
+      ansible.builtin.copy:
+        remote_src: true
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /root/.kube/config
+        mode: "0600"
+
+    - name: Ensure local ~/.kube exists
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.kube"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+      run_once: true
+
+    - name: Fetch kubeconfig to local ~/.kube/config
+      ansible.builtin.fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+        flat: true
+      become: false
+      run_once: true
+
+    - name: Labelling node
+      shell: > 
+        kubectl label node morgul kubernetes.io/role=worker && 
+        kubectl label node morgul node-type=worker  &&
+        kubectl label node morgul rancher-node=primary
+
+    - name: Verify node labels
+      shell: kubectl get nodes --show-labels
+      register: node_labels
+    - debug: var=node_labels.stdout_lines
