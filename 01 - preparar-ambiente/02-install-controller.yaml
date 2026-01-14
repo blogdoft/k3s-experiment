@@ -13,7 +13,9 @@
   gather_facts: yes
   tasks:
     - name: Run k3s script      
-      shell: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.26.9+k3s1 sh -s - --write-kubeconfig-mode 644 --bind-address 192.168.1.145 --disable traefik
+      shell: curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644 --bind-address 192.168.1.212 --disable-cloud-controller --disable local-storage --datastore-endpoint='postgres://fatlip:$1m0n$41m0n@192.168.1.212:5432/k3s?sslmode=disable'
+      environment:
+        K3S_TOKEN: "{{ K3S_TOKEN }}"
       register: k3s_script_controller
     - debug: var=k3s_script_controller.stdout_lines
     
@@ -36,8 +38,3 @@
       ansible.builtin.shell:
          sudo cat /etc/rancher/k3s/k3s.yaml >  ~/.kube/config
 
-    - name: Remove Traefik manifest
-      become: yes
-      file: 
-        path: /var/lib/rancher/k3s/server/manifests/traefik.yaml
-        state: absent

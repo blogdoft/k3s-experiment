@@ -1,6 +1,17 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0.23-jammy-arm32v7 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine-arm64v8 AS runtime
 ARG PUBLISH_FOLDER=app/
 WORKDIR /app
+
+# Install ICU and timezone data so .NET can use cultures/locales on Alpine
+# Keep the layer small and remove apk cache after install
+RUN apk add --no-cache icu-libs icu-data-full tzdata \
+  && rm -rf /var/cache/apk/*
+
+# Enable full globalization and set the desired culture to pt_BR
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV LANG=pt_BR.UTF-8
+ENV LC_ALL=pt_BR.UTF-8
+
 COPY ${PUBLISH_FOLDER} .
 EXPOSE 80
 EXPOSE 443

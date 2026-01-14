@@ -12,7 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers().Services
+    .ConfigSwashbuckle();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services
     .AddLocalization()
@@ -53,15 +55,14 @@ builder.Services
 
         return new SupportedCultures(requestCulture);
     })
-    .AddEndpointsApiExplorer()
-    .AddSwaggerGen(options => options.OperationFilter<ApplicationHeaders>())
     .AddSingleton(opt => new CacheEntryConfiguration()
     {
         StoreLanguage = true,
     })
     .AddCacheWrapper(opt =>
     {
-        opt.ConnectionString = "redis-server.redis-server.svc.cluster.local:6379,asyncTimeout=1000,connectTimeout=1000,password=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81,abortConnect=false";
+        // opt.ConnectionString = "redis-server.redis-server.svc.cluster.local:6379,asyncTimeout=1000,connectTimeout=1000,password=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81,abortConnect=false";
+        opt.ConnectionString = "redis.home.arpa:6379,asyncTimeout=1000,connectTimeout=1000,password=eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81,abortConnect=false";
         opt.CacheType = CacheType.Redis;
     });
 
@@ -70,14 +71,14 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var pathBase = builder.Configuration.GetValue<string>("ASPNETCORE_BASEURL") ?? "/";
+    app.UsePathBase(pathBase);
+    app.ConfigureSwagger(pathBase);
 }
 
-// app.UseHttpsRedirection();
 app.UseRequestLocalization(app.Services.GetRequiredService<IOptions<RequestLocalizationOptions>>()!.Value);
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();

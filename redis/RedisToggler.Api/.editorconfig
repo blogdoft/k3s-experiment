@@ -208,6 +208,8 @@ dotnet_diagnostic.SA1119.severity=none
 dotnet_diagnostic.SA1601.severity=none
 dotnet_diagnostic.SA1639.severity=none
 
+dotnet_diagnostic.IDE0051.severity=error
+
 # SA1305: Field names must no use Hungarian notation
 dotnet_diagnostic.SA1305.severity=warning
 
