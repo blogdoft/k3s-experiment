@@ -26,7 +26,7 @@
       "flagr" : [ "flagr-role" ]
     },
     "notBefore" : 0,
-    "groups" : [ ]
+    "groups" : [ "/ArgoCDAdmins" ]
   }, {
     "id" : "f77a9a10-ea6d-4ce7-ba8b-f62ad78e96f5",
     "username" : "service-account-flagr",

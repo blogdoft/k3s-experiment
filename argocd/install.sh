@@ -48,6 +48,8 @@ spec:
               name: http
 EOF
 
+kubectl -n argocd patch secret argocd-secret --patch='{"stringData": { "oidc.keycloak.clientSecret": "'"$ARGOCD_KC_CLIENT_SECRET"'" }}'
+
 #now redeploy and wait
 kubectl -n argocd rollout restart deploy argocd-server
 #wait for pod to come up

@@ -249,6 +249,14 @@
         "attributes" : { }
       } ],
       "security-admin-console" : [ ],
+      "argocd" : [ {
+        "id" : "0077efd5-6634-4c5c-bf27-b217704fc8af",
+        "name" : "uma_protection",
+        "composite" : false,
+        "clientRole" : true,
+        "containerId" : "7f6c485a-9eb6-4af1-819a-96cd53870336",
+        "attributes" : { }
+      } ],
       "admin-cli" : [ ],
       "flagr" : [ {
         "id" : "13ee16cd-6345-4b76-86cd-55245f208815",
@@ -346,7 +354,16 @@
       } ]
     }
   },
-  "groups" : [ ],
+  "groups" : [ {
+    "id" : "dd6386b0-9ec7-4358-b9b5-dbd7ebba5f82",
+    "name" : "ArgoCDAdmins",
+    "description" : "ArgoCD Admins",
+    "path" : "/ArgoCDAdmins",
+    "subGroups" : [ ],
+    "attributes" : { },
+    "realmRoles" : [ ],
+    "clientRoles" : { }
+  } ],
   "defaultRole" : {
     "id" : "963ba300-2a0e-4d06-8eb2-ec51ce3b4f95",
     "name" : "default-roles-k8s",
@@ -496,6 +513,49 @@
     "fullScopeAllowed" : true,
     "nodeReRegistrationTimeout" : 0,
     "defaultClientScopes" : [ "web-origins", "acr", "profile", "roles", "basic", "email" ],
+    "optionalClientScopes" : [ "address", "phone", "offline_access", "organization", "microprofile-jwt" ]
+  }, {
+    "id" : "7f6c485a-9eb6-4af1-819a-96cd53870336",
+    "clientId" : "argocd",
+    "name" : "ArgoCD",
+    "description" : "",
+    "rootUrl" : "https://argocd.home.arpa",
+    "adminUrl" : "https://argocd.home.arpa",
+    "baseUrl" : "https://argocd.home.arpa",
+    "surrogateAuthRequired" : false,
+    "enabled" : true,
+    "alwaysDisplayInConsole" : false,
+    "clientAuthenticatorType" : "client-secret",
+    "secret" : "${ARGOCD_KC_CLIENT_SECRET}",
+    "redirectUris" : [ "http://localhost:8085/auth/callback", "https://argocd.home.arpa/auth/callback" ],
+    "webOrigins" : [ "https://argocd.home.arpa" ],
+    "notBefore" : 0,
+    "bearerOnly" : false,
+    "consentRequired" : false,
+    "standardFlowEnabled" : true,
+    "implicitFlowEnabled" : false,
+    "directAccessGrantsEnabled" : true,
+    "serviceAccountsEnabled" : false,
+    "publicClient" : false,
+    "frontchannelLogout" : true,
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "realm_client" : "false",
+      "oidc.ciba.grant.enabled" : "false",
+      "client.secret.creation.time" : "1768873638",
+      "backchannel.logout.session.required" : "true",
+      "standard.token.exchange.enabled" : "false",
+      "frontchannel.logout.session.required" : "true",
+      "oauth2.device.authorization.grant.enabled" : "false",
+      "display.on.consent.screen" : "false",
+      "pkce.code.challenge.method" : "S256",
+      "backchannel.logout.revoke.offline.tokens" : "false",
+      "dpop.bound.access.tokens" : "false"
+    },
+    "authenticationFlowBindingOverrides" : { },
+    "fullScopeAllowed" : true,
+    "nodeReRegistrationTimeout" : -1,
+    "defaultClientScopes" : [ "web-origins", "acr", "profile", "roles", "groups", "basic", "email" ],
     "optionalClientScopes" : [ "address", "phone", "offline_access", "organization", "microprofile-jwt" ]
   }, {
     "id" : "882c8db0-c6cf-491b-bdfa-b2cd0373475e",
@@ -693,6 +753,34 @@
         "access.token.claim" : "true",
         "claim.name" : "clientAddress",
         "jsonType.label" : "String"
+      }
+    } ]
+  }, {
+    "id" : "ef208f24-9191-4e4c-9d29-5e77748c7385",
+    "name" : "groups",
+    "description" : "",
+    "protocol" : "openid-connect",
+    "attributes" : {
+      "include.in.token.scope" : "true",
+      "display.on.consent.screen" : "true",
+      "gui.order" : "",
+      "consent.screen.text" : "",
+      "include.in.openid.provider.metadata" : "true"
+    },
+    "protocolMappers" : [ {
+      "id" : "a8300fe0-1e69-4654-bc29-dcffd1b92a5f",
+      "name" : "groups",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-group-membership-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "full.path" : "false",
+        "introspection.token.claim" : "true",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
+        "lightweight.claim" : "false",
+        "access.token.claim" : "true",
+        "claim.name" : "groups"
       }
     } ]
   }, {
