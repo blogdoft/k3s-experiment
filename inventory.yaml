@@ -12,31 +12,8 @@ all:
 controller:
   hosts:
     morgul:
-      ansible_host: morgul
+      ansible_host: '{{ lookup("env", "HOST_NAME") }}'
       ansible_connection: ssh
-      ansible_user: sauron
-      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-      ansible_become_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-      var_disk: sda
-      var_uuid: e9c01c2b-8330-46bc-aeed-a8fa5f696e2c
-
-workers:
-  hosts:
-    controller_rasp:
-      ansible_connection: ssh
-      ansible_host: controller
-      ansible_user: ftathiago
-      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-      ansible_become_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-    worker1:
-      ansible_connection: ssh
-      ansible_host: worker1
-      ansible_user: ftathiago
-      ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-      ansible_become_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
-    worker2:
-      ansible_connection: ssh
-      ansible_host: worker2
-      ansible_user: ftathiago
+      ansible_user: '{{ lookup("env", "ANSIBLE_MORGUL") }}'
       ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'
       ansible_become_password: '{{ lookup("env", "ANSIBLE_PASSWORD") }}'

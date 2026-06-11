@@ -1,8 +1,0 @@
-- name: Install agent
-  hosts: workers
-  gather_facts: yes
-  tasks:
-    - name: Run k3s script (agent)
-      shell: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.27.2+k3s1 K3S_URL=https://192.168.1.212:6443 sh -
-      register: agent_output
-    - debug: var=agent_output

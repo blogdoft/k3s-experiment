@@ -3,28 +3,15 @@
 set -e
 
 # This will install the ArgoCD manifest, and add and ingress for traefik so you can access it on http://hostname/argocd
-kubectl create namespace argocd \
-    --save-config \
-    --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace argocd
+kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl patch configmap argocd-cmd-params-cm \
+  -n argocd \
+  --type merge \
+  -p '{"data":{"server.insecure":"true"}}'
 
 kubectl apply -f - << "EOF"
----
-#Need to configure argocd to server.insecure: "true"
-#https://argo-cd.readthedocs.io/en/stable/operator-manual/ingress/#traefik-v22
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-cmd-params-cm
-  namespace: argocd
-  labels:
-    app.kubernetes.io/name: argocd-cmd-params-cm
-    app.kubernetes.io/part-of: argocd
-data:
-  server.insecure: "true"
-  # Removed server.basehref and server.rootpath to serve from root
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -48,43 +35,41 @@ spec:
               name: http
 EOF
 
-kubectl -n argocd patch secret argocd-secret --patch='{"stringData": { "oidc.keycloak.clientSecret": "'"$ARGOCD_KC_CLIENT_SECRET"'" }}'
-
 #now redeploy and wait
 kubectl -n argocd rollout restart deploy argocd-server
 #wait for pod to come up
 kubectl wait pods --timeout=120s --for=condition=Ready -n argocd -l app.kubernetes.io/name=argocd-server
 
 echo "      ##########################################"
-echo "      ##  Waiting for Ingress to be ready    ##"
+echo "      ##  Aguardando Ingress estar pronto    ##"
 echo "      ##########################################"
 
-# Wait for Ingress to be created
-echo "Checking if Ingress argocd-ingress was created..."
+# Aguarda o Ingress ser criado
+echo "Verificando se Ingress argocd-ingress foi criado..."
 until kubectl get ingress argocd-ingress -n argocd &>/dev/null; do
-  echo "Waiting for Ingress to be created..."
+  echo "Aguardando Ingress ser criado..."
   sleep 2
 done
-echo "✓ Ingress created"
+echo "✓ Ingress criado"
 
-# Wait for Traefik to process the Ingress (checking connectivity)
-echo "Checking connectivity at https://argocd.home.arpa ..."
+# Aguarda o Traefik processar o Ingress (verificando conectividade)
+echo "Verificando conectividade em https://argocd.home.arpa ..."
 max_attempts=30
 attempt=0
 until curl -k -s -f -o /dev/null https://argocd.home.arpa || [ $attempt -eq $max_attempts ]; do
-  echo "Waiting for ArgoCD to respond via Ingress (attempt $((attempt+1))/$max_attempts)..."
+  echo "Aguardando ArgoCD responder via Ingress (tentativa $((attempt+1))/$max_attempts)..."
   sleep 5
   attempt=$((attempt+1))
 done
 
 if [ $attempt -eq $max_attempts ]; then
-  echo "⚠️  WARNING: Timeout waiting for Ingress to respond. Trying login anyway..."
+  echo "⚠️  AVISO: Timeout aguardando Ingress responder. Tentando login mesmo assim..."
 else
-  echo "✓ ArgoCD accessible via Ingress"
+  echo "✓ ArgoCD acessível via Ingress"
 fi
 
 echo "      ##########################################"
-echo "      ##  Logging into ArgoCD                ##"
+echo "      ##  Logging no ArgoCD                   ##"
 echo "      ##########################################"
 argocd login argocd.home.arpa \
     --grpc-web \

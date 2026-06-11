@@ -35,14 +35,17 @@
       ansible.builtin.apt:
         pkg:
           - vim
+
     - name: Install curl
       ansible.builtin.apt:
         pkg:
           - curl
+
     - name: Install nmap
       ansible.builtin.apt:
         pkg:
           - nmap
+
     - name: Install iptables
       ansible.builtin.apt:
         name: iptables
@@ -58,6 +61,7 @@
       ansible.builtin.apt:
         pkg:
           - wireguard
+
     - name: Add disk nfs-common
       ansible.builtin.apt:
         name: nfs-common
