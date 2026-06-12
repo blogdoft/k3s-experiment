@@ -3,10 +3,11 @@
   gather_facts: yes
   become: yes
   tasks:
-    - name: Run k3s uninstall script
+    - name: Run k3s uninstall script      
       shell: >
         /usr/local/bin/k3s-uninstall.sh
       register: k3s_script_controller
-      async: 60 # Timeout de 2 minutos (120 segundos)
-      poll: 5 # Verifica o status a cada 10 segundos
+      async: 120  # Timeout de 2 minutos (120 segundos)
+      poll: 10    # Verifica o status a cada 10 segundos
     - debug: var=k3s_script_controller.stdout_lines
+    

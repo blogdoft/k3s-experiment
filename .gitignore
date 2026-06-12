@@ -5,3 +5,7 @@
 argocd/repo-secret.generated.yaml
 repomix*
 *repomix*.json
+*repomix-output.json
+openbao/openbao-init.json
+openbao/openbao-root-token.txt
+openbao/openbao-unseal-keys.txt
