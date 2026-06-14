@@ -26,23 +26,32 @@ echo "##########################################################################
 echo
 
 read -r -p "Do you want to configure secrets? (y/yes to confirm): " install_k3s
-    if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
 
     echo "Configuring Secrets for Flagr..."
     cd  ./flagr
     ./install.sh
     cd ..
     echo "... Secrets for Flagr configured successfully!"
+    echo
 
     echo "Configuring local cluster DNS..."
     kubectl apply -f ./dns/
     echo "... Local cluster DNS configured successfully!"
+    echo
 
     echo "Configuring Secrets and Realms for Keycloak..."
     cd ./keycloak
     ./install.sh
     cd ..
     echo "... Secrets and Realms for Keycloak configured successfully!"
+    echo
+
+    echo "Configuring forgejo"
+    cd ./forgejo
+    ./configure.sh
+    cd..
+    echo
 else
     echo "Skipping secrets creation"
 fi
