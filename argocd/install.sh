@@ -35,37 +35,39 @@ spec:
               name: http
 EOF
 
-#now redeploy and wait
+./generate-repo-secret.sh
+
+#Redeploy and wait
 kubectl -n argocd rollout restart deploy argocd-server
-#wait for pod to come up
+#Wait for the pod to become ready
 kubectl wait pods --timeout=120s --for=condition=Ready -n argocd -l app.kubernetes.io/name=argocd-server
 
 echo "      ##########################################"
-echo "      ##  Aguardando Ingress estar pronto    ##"
+echo "      ##  Waiting for Ingress to be ready     ##"
 echo "      ##########################################"
 
-# Aguarda o Ingress ser criado
-echo "Verificando se Ingress argocd-ingress foi criado..."
+# Wait for the Ingress to be created
+echo "Checking if Ingress argocd-ingress has been created..."
 until kubectl get ingress argocd-ingress -n argocd &>/dev/null; do
-  echo "Aguardando Ingress ser criado..."
+  echo "Waiting for Ingress to be created..."
   sleep 2
 done
-echo "✓ Ingress criado"
+echo "✓ Ingress created"
 
-# Aguarda o Traefik processar o Ingress (verificando conectividade)
-echo "Verificando conectividade em https://argocd.home.arpa ..."
+# Wait for Traefik to process the Ingress (checking connectivity)
+echo "Checking connectivity to https://argocd.home.arpa ..."
 max_attempts=30
 attempt=0
 until curl -k -s -f -o /dev/null https://argocd.home.arpa || [ $attempt -eq $max_attempts ]; do
-  echo "Aguardando ArgoCD responder via Ingress (tentativa $((attempt+1))/$max_attempts)..."
+  echo "Waiting for ArgoCD to respond through Ingress (attempt $((attempt+1))/$max_attempts)..."
   sleep 5
   attempt=$((attempt+1))
 done
 
 if [ $attempt -eq $max_attempts ]; then
-  echo "⚠️  AVISO: Timeout aguardando Ingress responder. Tentando login mesmo assim..."
+  echo "⚠️  WARNING: Timeout waiting for Ingress to respond. Attempting login anyway..."
 else
-  echo "✓ ArgoCD acessível via Ingress"
+  echo "✓ ArgoCD is accessible through Ingress"
 fi
 
 echo "      ##########################################"
