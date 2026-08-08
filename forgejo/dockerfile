@@ -1,0 +1,16 @@
+FROM code.forgejo.org/forgejo/runner:6.4.0
+
+USER root
+
+RUN apk add --no-cache \
+    bash \
+    curl \
+    git \
+    ca-certificates \
+    docker-cli \
+    containerd \
+    nodejs \
+    npm \
+    kubectl
+
+USER root

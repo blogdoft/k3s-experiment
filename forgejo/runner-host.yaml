@@ -40,7 +40,8 @@ spec:
       restartPolicy: Always
       initContainers:
         - name: runner-register-host
-          image: code.forgejo.org/forgejo/runner:6.4.0
+          image: docker.io/library/forgejo-runner-host:latest
+          imagePullPolicy: Never
           command:
             - /bin/bash
             - -c
@@ -82,18 +83,19 @@ spec:
             - name: runner-data-host
               mountPath: /data
           securityContext:
-            allowPrivilegeEscalation: false
+            allowPrivilegeEscalation: true
             capabilities:
               drop:
                 - ALL
-            privileged: false
+            privileged: true
             readOnlyRootFilesystem: true
-            runAsNonRoot: true
+            runAsNonRoot: false
             seccompProfile:
               type: RuntimeDefault
       containers:
         - name: runner
-          image: code.forgejo.org/forgejo/runner:6.4.0
+          image: docker.io/library/forgejo-runner-host:latest
+          imagePullPolicy: Never
           command:
             - /bin/bash
             - -c
@@ -116,6 +118,8 @@ spec:
               mountPath: /data
             - name: docker-sock-host
               mountPath: /var/run/docker.sock
+            - name: k3s-bin
+              mountPath: /usr/local/bin/k3s              
           securityContext:
             privileged: true
             runAsUser: 0
@@ -136,3 +140,7 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+        - name: k3s-bin
+          hostPath:
+            path: /usr/local/bin/k3s
+            type: File            
