@@ -3,7 +3,8 @@
 set -e
 
 # This will install the ArgoCD manifest, and add and ingress for traefik so you can access it on http://hostname/argocd
-kubectl create namespace argocd
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
 kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 kubectl patch configmap argocd-cmd-params-cm \
@@ -40,7 +41,7 @@ EOF
 #Redeploy and wait
 kubectl -n argocd rollout restart deploy argocd-server
 #Wait for the pod to become ready
-kubectl wait pods --timeout=120s --for=condition=Ready -n argocd -l app.kubernetes.io/name=argocd-server
+kubectl wait pods --timeout=180s --for=condition=Ready -n argocd -l app.kubernetes.io/name=argocd-server
 
 echo "      ##########################################"
 echo "      ##  Waiting for Ingress to be ready     ##"
