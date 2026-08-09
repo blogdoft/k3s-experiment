@@ -9,5 +9,10 @@
       register: k3s_script_controller
       async: 120  # Timeout de 2 minutos (120 segundos)
       poll: 10    # Verifica o status a cada 10 segundos
-    - debug: var=k3s_script_controller.stdout_lines
     
+    - name: Reload systemd daemon
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - debug: var=k3s_script_controller.stdout_lines

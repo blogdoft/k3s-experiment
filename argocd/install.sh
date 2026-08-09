@@ -74,6 +74,7 @@ fi
 echo "      ##########################################"
 echo "      ##  Logging no ArgoCD                   ##"
 echo "      ##########################################"
+sleep 1
 argocd login argocd.home.arpa \
     --grpc-web \
     --insecure \

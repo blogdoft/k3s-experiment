@@ -1,0 +1,255 @@
+---
+- name: Configure development server
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    target_home: "/home/{{ ansible_user }}"
+
+    zsh_custom: "{{ target_home }}/.oh-my-zsh/custom"
+
+    dotnet_sdks:
+      - channel: "8.0"
+        quality: "ga"
+
+      - channel: "9.0"
+        quality: "ga"
+
+      - channel: "10.0"
+        quality: "ga"
+
+    nvm_version: "v0.40.3"
+    node_version: "lts/*"
+
+    docker_supported_distros:
+      - Debian
+      - Ubuntu
+
+  pre_tasks:
+    - name: Validate supported operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution in docker_supported_distros
+        fail_msg: "Unsupported distribution: {{ ansible_distribution }}"
+
+    - name: Set Docker repository distribution
+      ansible.builtin.set_fact:
+        docker_distribution: "{{ ansible_distribution | lower }}"
+
+    - name: Set Docker architecture
+      ansible.builtin.set_fact:
+        docker_architecture: >-
+          {{
+            'amd64'
+            if ansible_architecture == 'x86_64'
+            else 'arm64'
+            if ansible_architecture == 'aarch64'
+            else ansible_architecture
+          }}
+
+  tasks:
+
+    ###########################################################################
+    # Base packages
+    ###########################################################################
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - zsh
+        state: present
+        update_cache: true
+
+    ###########################################################################
+    # ZSH
+    ###########################################################################
+
+    - name: Set ZSH as default shell
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        shell: /usr/bin/zsh
+
+    ###########################################################################
+    # Oh My Zsh
+    ###########################################################################
+
+    - name: Clone Oh My Zsh
+      ansible.builtin.git:
+        repo: https://github.com/ohmyzsh/ohmyzsh.git
+        dest: "{{ target_home }}/.oh-my-zsh"
+        version: master
+        update: true
+      become_user: "{{ ansible_user }}"
+
+    ###########################################################################
+    # Spaceship
+    ###########################################################################
+
+    - name: Install Spaceship prompt
+      ansible.builtin.git:
+        repo: https://github.com/spaceship-prompt/spaceship-prompt.git
+        dest: "{{ zsh_custom }}/themes/spaceship-prompt"
+        version: master
+        update: true
+      become_user: "{{ ansible_user }}"
+
+    - name: Create Spaceship theme symbolic link
+      ansible.builtin.file:
+        src: "{{ zsh_custom }}/themes/spaceship-prompt/spaceship.zsh-theme"
+        dest: "{{ zsh_custom }}/themes/spaceship.zsh-theme"
+        state: link
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    ###########################################################################
+    # ZSH configuration
+    ###########################################################################
+
+    - name: Configure ZSH
+      ansible.builtin.copy:
+        dest: "{{ target_home }}/.zshrc"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+        content: |
+          export ZSH="$HOME/.oh-my-zsh"
+
+          ZSH_THEME="spaceship"
+
+          plugins=(
+            git
+            virtualenv
+          )
+
+          source $ZSH/oh-my-zsh.sh
+
+          SPACESHIP_PROMPT_ORDER=(
+            venv
+            pyenv
+            dotnet
+            user
+            dir
+            host
+            git
+            hg
+            exec_time
+            line_sep
+            jobs
+            exit_code
+            char
+          )
+
+          SPACESHIP_USER_SHOW=always
+          SPACESHIP_PROMPT_ADD_NEWLINE=false
+          SPACESHIP_CHAR_SYMBOL="❯"
+          SPACESHIP_CHAR_SUFFIX=" "
+
+          #####################################################################
+          # .NET
+          #####################################################################
+
+          export DOTNET_ROOT="$HOME/.dotnet"
+          export DOTNET_TOOLS="$DOTNET_ROOT/tools"
+
+          #####################################################################
+          # NVM
+          #####################################################################
+
+          export NVM_DIR="$HOME/.nvm"
+
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+          #####################################################################
+          # PATH
+          #####################################################################
+
+          export LOCAL_BIN="$HOME/.local/bin"
+
+          export PATH="$PATH:$LOCAL_BIN"
+          export PATH="$PATH:$DOTNET_ROOT"
+          export PATH="$PATH:$DOTNET_TOOLS"
+
+          #####################################################################
+          # Aliases
+          #####################################################################
+
+          alias ls="ls -lAh --color=auto"
+          alias gitversion="dotnet-gitversion"
+          alias dotnet-fm="dotnet dotnet-fm"
+
+    ###########################################################################
+    # .NET
+    ###########################################################################
+
+    - name: Download dotnet install script
+      ansible.builtin.get_url:
+        url: https://dot.net/v1/dotnet-install.sh
+        dest: /tmp/dotnet-install.sh
+        mode: "0755"
+
+    - name: Check installed .NET SDKs
+      ansible.builtin.command:
+        cmd: "{{ target_home }}/.dotnet/dotnet --list-sdks"
+      register: dotnet_sdks_installed
+      failed_when: false
+      changed_when: false
+      become_user: "{{ ansible_user }}"
+
+    - name: Extract installed .NET channels
+      ansible.builtin.set_fact:
+        installed_dotnet_channels: >-
+          {{
+            dotnet_sdks_installed.stdout_lines
+            | default([])
+            | map('regex_replace', '^([0-9]+\\.[0-9]+).*$', '\\1')
+            | unique
+            | list
+          }}
+
+    - name: Show installed .NET channels
+      ansible.builtin.debug:
+        var: installed_dotnet_channels
+
+    - name: Install missing .NET SDK channels
+      ansible.builtin.command:
+        cmd: >
+          /tmp/dotnet-install.sh
+          --channel {{ item.channel }}
+          --quality {{ item.quality }}
+          --install-dir {{ target_home }}/.dotnet
+      loop: "{{ dotnet_sdks }}"
+      loop_control:
+        label: ".NET {{ item.channel }} ({{ item.quality }})"
+      when: item.channel not in installed_dotnet_channels
+      become_user: "{{ ansible_user }}"
+
+    ###########################################################################
+    # NVM
+    ###########################################################################
+
+    - name: Install NVM
+      ansible.builtin.git:
+        repo: https://github.com/nvm-sh/nvm.git
+        dest: "{{ target_home }}/.nvm"
+        version: "{{ nvm_version }}"
+        update: false
+        recursive: false
+      become_user: "{{ ansible_user }}"
+
+    - name: Install Node.js LTS
+      ansible.builtin.shell: |
+        set -e
+        export NVM_DIR="{{ target_home }}/.nvm"
+        . "$NVM_DIR/nvm.sh"
+
+        nvm install "{{ node_version }}"
+        nvm alias default "{{ node_version }}"
+      args:
+        executable: /bin/bash
+      become_user: "{{ ansible_user }}"
+

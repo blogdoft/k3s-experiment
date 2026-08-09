@@ -16,11 +16,10 @@ if ! command -v argocd &> /dev/null; then
   exit 2
 fi
 
-read -r -p "Caminho da chave privada SSH (ex: /home/ftathiago/.ssh/id_ed25519-github): " KEY_PATH
-if [[ -z "${KEY_PATH}" ]]; then
-  echo "Caminho vazio." >&2
-  exit 2
-fi
+DEFAULT_KEY_PATH="$HOME/.ssh/id_ed25519-github"
+
+read -r -p "Caminho da chave privada SSH (ex: $DEFAULT_KEY_PATH): " KEY_PATH
+KEY_PATH="${KEY_PATH:-$DEFAULT_KEY_PATH}"
 
 # Expand ~ manually (bash doesn't expand inside quotes)
 if [[ "$KEY_PATH" == ~/* ]]; then

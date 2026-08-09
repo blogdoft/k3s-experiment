@@ -19,7 +19,8 @@
         --write-kubeconfig-mode 644 
         --bind-address {{ k3s_bind_address }} 
         --disable-cloud-controller 
-        --disable local-storage 
+        --disable local-storage
+        --token {{ k3s_token }}
         --datastore-endpoint='postgres://{{ k3s_db_user }}:{{ k3s_db_password }}@{{ k3s_db_host }}:{{ k3s_db_port }}/{{ k3s_db_name }}?sslmode=disable'
       register: k3s_script_controller
       async: 120  # Timeout de 2 minutos (120 segundos)

@@ -4,6 +4,14 @@ set -e
 
 source .env
 
+read -r -p "Do you want prepare the controller server? (y/yes to confirm): " prepare_server
+if [[ "$prepare_server" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    echo "Running ansible prepare-server.yamly"
+    ansible-playbook playbooks/prepare-server.yaml -i inventory.yaml
+    echo "Server preparation is done. You do not need to repeat this again."
+fi
+
+
 read -r -p "Do you want to install k3s? (y/yes to confirm): " install_k3s
 if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     echo "Zerando bancos de dados"
@@ -50,7 +58,7 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     echo "Configuring forgejo"
     cd ./forgejo
     ./configure.sh
-    cd..
+    cd ..
     echo
 else
     echo "Skipping secrets creation"

@@ -10,7 +10,7 @@ PG_USER="${K3S_DB_USER:-postgres}"
 PG_PASSWORD="${K3S_DB_PASSWORD:-postgres}"
 PG_MAINTENANCE_DB="${PG_MAINTENANCE_DB:-postgres}"
 
-DATABASES="flagr k3s kc-cluster"
+DATABASES="flagr k3s kc-cluster forgejodb"
 
 run_psql() {
   docker run --rm \
