@@ -14,7 +14,7 @@ fi
 
 read -r -p "Do you want to install k3s? (y/yes to confirm): " install_k3s
 if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
-    echo "Zerando bancos de dados"
+    echo "Removing databases"
     cd ./databases
     ./configure.sh
     cd ..    
@@ -55,9 +55,15 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     echo "... Secrets and Realms for Keycloak configured successfully!"
     echo
 
-    echo "Configuring forgejo"
+    echo "Configuring forgejo secrets"
     cd ./forgejo
     ./configure.sh
+    cd ..
+    echo
+
+    echo "Configuring secrets for Open-WebUI"
+    cd ./open-webui
+    ./install.sh
     cd ..
     echo
 else
