@@ -7,10 +7,10 @@ PG_IMAGE="postgres:14-alpine"
 PG_HOST="${DATABASE_HOST:-127.0.0.1}"
 PG_PORT="${PG_PORT:-5432}"
 PG_USER="${K3S_DB_USER:-postgres}"
-PG_PASSWORD="${K3S_DB_PASSWORD:-postgres}"
+PG_PASSWORD="${DATABASE_PASSWORD:-postgres}"
 PG_MAINTENANCE_DB="${PG_MAINTENANCE_DB:-postgres}"
 
-DATABASES="flagr k3s kc-cluster forgejodb"
+DATABASES="flagr k3s kc-cluster"
 
 run_psql() {
   docker run --rm \
