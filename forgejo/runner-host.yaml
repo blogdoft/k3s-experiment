@@ -40,8 +40,8 @@ spec:
       restartPolicy: Always
       initContainers:
         - name: runner-register-host
-          image: docker.io/library/forgejo-runner-host:latest
-          imagePullPolicy: Never
+          image: data.forgejo.org/forgejo/runner:13
+          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - -c
@@ -94,8 +94,8 @@ spec:
               type: RuntimeDefault
       containers:
         - name: runner
-          image: docker.io/library/forgejo-runner-host:latest
-          imagePullPolicy: Never
+          image: data.forgejo.org/forgejo/runner:13
+          imagePullPolicy: IfNotPresent
           command:
             - /bin/bash
             - -c

@@ -79,6 +79,11 @@
       ansible.builtin.apt:
         name: util-linux
         state: present
+    - name: Add disk utils
+      ansible.builtin.apt:
+        name: 
+          - cruptsetup
+        state: present
     
     - name: Add disk net-tools
       ansible.builtin.apt:

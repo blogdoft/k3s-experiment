@@ -89,3 +89,22 @@ kubectl create namespace forgejo \
     --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f $TEMP_FILE -n forgejo
 rm $TEMP_FILE
+
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+echo "##############################################################"
+echo "# ATENTION, PLEASE!                                          #"
+echo "# You will gonna need to run ./forgejo/runner-install.sh     #"
+echo "# after everything is configure. That script will create     #"
+echo "# runners for Foregejo Actions.                              #"
+echo "# Please, wait everything is green before run that script.   #"
+echo "##############################################################"
+echo ""
+echo ""
+echo ""
+echo ""
+echo ""
+read -r -p "Type any key to continue"
