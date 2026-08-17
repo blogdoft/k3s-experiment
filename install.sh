@@ -135,10 +135,28 @@ fi
 echo "#####################################################################################"
 echo
 
-echo "Import this certificate into your browser to avoid TLS issues:"
+echo "Import this certificate into your brow./ser to avoid TLS issues:"
 kubectl -n cert-manager get secret home-arpa-ca \
   -o jsonpath='{.data.ca\.crt}' | base64 -d > home-arpa-ca.crt
+
+sudo cp home-arpa-ca.crt /usr/local/share/ca-certificates/home-arpa-ca.crt
+sudo update-ca-certificates
 echo "Certificate exported to ./home-arpa-ca.crt"
+echo "#####################################################################################"
+echo
+
+read -r -p "Do you want to configure docker and containerd to trust the self-signed certificate? (y/yes to confirm): " install_k3s
+if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    ansible-playbook playbooks/trust-ca-root.yaml -i inventory.yaml
+fi
+echo "#####################################################################################"
+echo
+
+echo "Do you want to setup forgejo runners? (y/yes to confirm)" 
+read -r -p "(you must have configured docker and containerd to trust the certificate): " install_k3s
+if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    ./forgejo/runner-install.sh
+fi
 echo "#####################################################################################"
 echo
 
@@ -154,6 +172,7 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
 fi
 echo "#####################################################################################"
 echo
+
 defaultPass=`kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
 echo "##### DEFAULT PASSWORD FOR ADMIN at ARGOCD IS $defaultPass #####"
 echo "All done!"

@@ -1,4 +1,4 @@
-FROM code.forgejo.org/forgejo/runner:6.4.0
+FROM data.forgejo.org/forgejo/runner:13
 
 USER root
 

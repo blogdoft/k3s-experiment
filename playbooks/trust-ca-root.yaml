@@ -1,0 +1,104 @@
+---
+- name: Configure Forgejo registry trust
+  hosts: controller
+  become: true
+
+  vars:
+    forgejo_registry: "forgejo.home.arpa"
+
+    cert_manager_namespace: "cert-manager"
+    cert_manager_ca_secret: "home-arpa-ca"
+
+    docker_cert_dir: "/etc/docker/certs.d/{{ forgejo_registry }}"
+
+    k3s_certs_dir: "/etc/rancher/k3s/certs"
+    k3s_ca_file: "{{ k3s_certs_dir }}/home-arpa-ca.crt"
+
+  tasks:
+    # --------------------------------------------------------
+    # Retrieve CA
+    # --------------------------------------------------------
+
+    - name: Read home.arpa CA from cert-manager
+      ansible.builtin.command:
+        cmd: >
+          kubectl -n {{ cert_manager_namespace }}
+          get secret {{ cert_manager_ca_secret }}
+          -o jsonpath='{.data.tls\.crt}'
+      register: home_arpa_ca
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    # --------------------------------------------------------
+    # Docker
+    # --------------------------------------------------------
+
+    - name: Create Docker certificate directory
+      ansible.builtin.file:
+        path: "{{ docker_cert_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install home.arpa CA for Docker
+      ansible.builtin.copy:
+        content: "{{ home_arpa_ca.stdout | b64decode }}"
+        dest: "{{ docker_cert_dir }}/ca.crt"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    # --------------------------------------------------------
+    # K3s / containerd
+    # --------------------------------------------------------
+
+    - name: Create K3s certificates directory
+      ansible.builtin.file:
+        path: "{{ k3s_certs_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install home.arpa CA for K3s containerd
+      ansible.builtin.copy:
+        content: "{{ home_arpa_ca.stdout | b64decode }}"
+        dest: "{{ k3s_ca_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart K3s
+
+    - name: Configure Forgejo registry in K3s
+      ansible.builtin.copy:
+        dest: /etc/rancher/k3s/registries.yaml
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          mirrors:
+            "{{ forgejo_registry }}":
+              endpoint:
+                - "https://{{ forgejo_registry }}"
+
+          configs:
+            "{{ forgejo_registry }}":
+              tls:
+                ca_file: "{{ k3s_ca_file }}"
+      notify: Restart K3s
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+        enabled: true
+
+    - name: Restart K3s
+      ansible.builtin.systemd:
+        name: k3s
+        state: restarted
+        daemon_reload: true
