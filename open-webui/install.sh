@@ -9,7 +9,6 @@ set -e
 
 source ../.env
 
-
 run_psql() {
   docker run --rm \
     -e PGPASSWORD="${DATABASE_PASSWORD}" \
