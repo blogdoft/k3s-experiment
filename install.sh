@@ -138,10 +138,11 @@ echo
 echo "Import this certificate into your brow./ser to avoid TLS issues:"
 kubectl -n cert-manager get secret home-arpa-ca \
   -o jsonpath='{.data.ca\.crt}' | base64 -d > home-arpa-ca.crt
-
+echo "Copying certificate to you local certificate folder"
 sudo cp home-arpa-ca.crt /usr/local/share/ca-certificates/home-arpa-ca.crt
 sudo update-ca-certificates
 echo "Certificate exported to ./home-arpa-ca.crt"
+echo "Please, import to your browser manually"
 echo "#####################################################################################"
 echo
 
