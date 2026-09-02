@@ -1,0 +1,66 @@
+---
+# Playbook: ensure a daily Docker image/build-cache cleanup cron job.
+# Idempotent: safe to re-run; only touches state that actually differs.
+#
+# Usage:
+#   ansible-playbook -i inventory.yaml playbooks/docker-prune.yaml
+
+- name: Ensure Docker image/build cache cleanup cron job
+  hosts: all
+  become: yes
+  gather_facts: no
+
+  vars:
+    docker_prune_script_path: /usr/local/sbin/docker-prune.sh
+    docker_prune_log_path: /var/log/docker-prune.log
+    docker_prune_keep_hours: 24
+    docker_prune_cron_hour: "3"
+    docker_prune_cron_minute: "15"
+
+  tasks:
+    - name: Deploy docker-prune.sh
+      ansible.builtin.copy:
+        dest: "{{ docker_prune_script_path }}"
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          set -eu
+          LOG={{ docker_prune_log_path }}
+          {
+            echo "=== $(date -Is) ==="
+            docker image prune -af --filter 'until={{ docker_prune_keep_hours }}h'
+            docker builder prune -af --filter 'until={{ docker_prune_keep_hours }}h'
+          } >> "$LOG" 2>&1
+      notify: validate docker-prune script
+
+    - name: Install cron job
+      ansible.builtin.cron:
+        name: "docker image/build cache cleanup"
+        cron_file: docker-prune
+        user: root
+        minute: "{{ docker_prune_cron_minute }}"
+        hour: "{{ docker_prune_cron_hour }}"
+        job: "{{ docker_prune_script_path }}"
+        state: present
+
+    - name: Ensure log rotation for docker-prune.log
+      ansible.builtin.copy:
+        dest: /etc/logrotate.d/docker-prune
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          {{ docker_prune_log_path }} {
+            weekly
+            rotate 4
+            compress
+            missingok
+            notifempty
+          }
+
+  handlers:
+    - name: validate docker-prune script
+      ansible.builtin.command: sh -n {{ docker_prune_script_path }}
+      changed_when: false
