@@ -5,6 +5,22 @@ set +x
 
 . ../.env
 
+# ============================================================
+# Image reference (always needed, even on redeploy without rebuild,
+# so runner-host.yaml's ${FULL_IMAGE} placeholder can be resolved)
+# ============================================================
+
+REGISTRY="forgejo.home.arpa"
+IMAGE_NAME="forgejo-runner-custom"
+IMAGE_TAG="13"
+
+export REGISTRY_USERNAME=""
+
+read -r -p "Enter your forgejo username (image owner/namespace): " REGISTRY_USERNAME
+OWNER="$REGISTRY_USERNAME"
+
+export FULL_IMAGE="${REGISTRY}/${OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
+
 read -r -p  "Do you want to build host runner image? (y/yes to confirm): " build_image
 if [[ "$build_image" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     echo "You must have completed forgejo installation and configured the secrets before building the host runner image."
@@ -14,19 +30,10 @@ if [[ "$build_image" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     # Validation
     # ============================================================
 
-    export REGISTRY_USERNAME=""
     export REGISTRY_PASSWORD=""
 
-    read -r -p "Enter your forgejo username: " REGISTRY_USERNAME
     read -r -sp "Enter your forgejo password: " REGISTRY_PASSWORD
     echo
-
-    REGISTRY="forgejo.home.arpa"
-    OWNER=$REGISTRY_USERNAME
-    IMAGE_NAME="forgejo-runner-custom"
-    IMAGE_TAG="13"
-
-    FULL_IMAGE="${REGISTRY}/${OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
 
     BUILDER_NAME="forgejo-builder"
 
@@ -104,12 +111,19 @@ EOF
         "${BUILDER_NAME}" \
         --bootstrap
 
+    # The CA needs to be inside the build context so the Dockerfile can
+    # trust it (job containers run "host" backend jobs, i.e. git/https
+    # calls made directly from this image against forgejo.home.arpa).
+    cp "${CA_FILE}" "./home-arpa-ca.crt"
+
     docker buildx build \
         --builder "${BUILDER_NAME}" \
         --platform linux/amd64 \
         --tag "${FULL_IMAGE}" \
         --push \
         .
+
+    rm -f "./home-arpa-ca.crt"
 
     docker buildx imagetools inspect "${FULL_IMAGE}"
     echo
@@ -146,6 +160,3 @@ kubectl apply -f $TEMP_FILE_HOST -n forgejo
 
 rm $TEMP_FILE_DOCKER
 rm $TEMP_FILE_HOST
-
-kubectl rollout restart deployment forgejo-runner -n forgejo
-kubectl rollout restart deployment forgejo-runner-host -n forgejo

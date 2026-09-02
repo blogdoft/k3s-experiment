@@ -13,4 +13,7 @@ RUN apk add --no-cache \
     npm \
     kubectl
 
+COPY home-arpa-ca.crt /usr/local/share/ca-certificates/home-arpa-ca.crt
+RUN update-ca-certificates
+
 USER root
