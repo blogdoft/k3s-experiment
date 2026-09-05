@@ -147,6 +147,8 @@ spec:
           args:
             - --insecure-registry=forgejo.forgejo.svc.cluster.local:3000
             - --insecure-registry=forgejo.home.arpa
+            - --insecure-registry=docker-registry-mirror.forgejo.svc.cluster.local:5000
+            - --registry-mirror=http://docker-registry-mirror.forgejo.svc.cluster.local:5000
           env:
             - name: DOCKER_TLS_CERTDIR
               value: /certs

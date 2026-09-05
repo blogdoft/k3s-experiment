@@ -134,6 +134,14 @@ fi
 echo "#####################################################################################"
 echo
 
+REGISTRY_MIRROR_FILE=registry-mirror.yaml
+
+echo "Applying Docker Hub pull-through registry mirror (idempotent, no delete)..."
+kubectl apply -f "$REGISTRY_MIRROR_FILE" -n forgejo
+kubectl rollout status deployment/docker-registry-mirror -n forgejo --timeout=120s
+echo "#####################################################################################"
+echo
+
 
 set +e
 echo "Delete any old forgejo-runner deployments"

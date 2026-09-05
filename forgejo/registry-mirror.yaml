@@ -1,0 +1,128 @@
+# Docker Hub pull-through cache (proxy mode), shared by all forgejo-runner dind
+# replicas so pulled images survive pod recreation instead of vanishing with the
+# ephemeral /var/lib/docker inside each dind sidecar.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-registry-mirror-config
+  namespace: forgejo
+  labels:
+    app: docker-registry-mirror
+    app.kubernetes.io/component: docker-registry-mirror
+    app.kubernetes.io/instance: docker-registry-mirror
+    app.kubernetes.io/name: docker-registry-mirror
+data:
+  REGISTRY_PROXY_REMOTEURL: "https://registry-1.docker.io"
+  REGISTRY_PROXY_TTL: "168h"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-mirror-data
+  namespace: forgejo
+  labels:
+    app: docker-registry-mirror
+    app.kubernetes.io/component: docker-registry-mirror
+    app.kubernetes.io/instance: docker-registry-mirror
+    app.kubernetes.io/name: docker-registry-mirror
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-fast
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry-mirror
+  namespace: forgejo
+  labels:
+    app: docker-registry-mirror
+    app.kubernetes.io/component: docker-registry-mirror
+    app.kubernetes.io/instance: docker-registry-mirror
+    app.kubernetes.io/name: docker-registry-mirror
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: docker-registry-mirror
+  template:
+    metadata:
+      name: docker-registry-mirror
+      labels:
+        app: docker-registry-mirror
+        app.kubernetes.io/component: docker-registry-mirror
+        app.kubernetes.io/instance: docker-registry-mirror
+        app.kubernetes.io/name: docker-registry-mirror
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: registry
+          image: registry:2
+          ports:
+            - containerPort: 5000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: docker-registry-mirror-config
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
+          readinessProbe:
+            httpGet:
+              path: /v2/
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /v2/
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: docker-registry-mirror-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry-mirror
+  namespace: forgejo
+  labels:
+    app: docker-registry-mirror
+    app.kubernetes.io/component: docker-registry-mirror
+    app.kubernetes.io/instance: docker-registry-mirror
+    app.kubernetes.io/name: docker-registry-mirror
+spec:
+  type: ClusterIP
+  selector:
+    app: docker-registry-mirror
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
