@@ -66,6 +66,18 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     ./install.sh
     cd ..
     echo
+
+    echo "Configuring secrets for MinIO"
+    cd ./minio
+    ./install.sh
+    cd ..
+    echo
+
+    echo "Configuring secrets for observability"
+    cd ./observability
+    ./install.sh
+    cd ..
+    echo
 else
     echo "Skipping secrets creation"
 fi
@@ -175,7 +187,10 @@ echo "##########################################################################
 echo
 
 defaultPass=`kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+rancherPass=`kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{.data.bootstrapPassword|base64decode}}'`
+
 echo "##### DEFAULT PASSWORD FOR ADMIN at ARGOCD IS $defaultPass #####"
+echo "##### DEFAULT PASSWORD FOR ADMIN at RANCHER IS $rancherPass #####"
 echo "All done!"
 echo
 echo "if you need to uninstall everything, run ./uninstall.sh"

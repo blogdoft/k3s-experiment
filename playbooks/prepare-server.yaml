@@ -160,6 +160,27 @@
         backrefs: true
       when: boot_cmdline.stat.exists
 
+    - name: Raise fs.file-max
+      ansible.posix.sysctl:
+        name: fs.file-max
+        value: "2097152"
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: yes
+
+    - name: Raise fs.inotify.max_user_watches
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: "524288"
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: yes
+
+    - name: Raise fs.inotify.max_user_instances
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_instances
+        value: "8192"
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+        reload: yes
+
     - name: Check if reboot is required (Debian/Ubuntu)
       ansible.builtin.stat:
         path: /var/run/reboot-required
