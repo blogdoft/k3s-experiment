@@ -22,7 +22,7 @@ metadata:
     app.kubernetes.io/managed-by: Kustomize
     app.kubernetes.io/name: forgejo-runner-host
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: forgejo-runner-host
@@ -38,8 +38,8 @@ spec:
     spec:
       automountServiceAccountToken: false
       restartPolicy: Always
-      initContainers:
-        - name: runner-register-host
+      containers:
+        - name: runner
           image: ${FULL_IMAGE}
           imagePullPolicy: Always
           command:
@@ -48,66 +48,40 @@ spec:
           args:
             - |
               cd /data
+              child=""
+              _term() {
+                echo "Caught TERM/INT, forwarding to forgejo-runner..." ;
+                [ -n "$child" ] && kill -TERM "$child" 2>/dev/null ;
+                wait "$child" 2>/dev/null ;
+                exit 0 ;
+              }
+              trap _term TERM INT
               while : ; do
-                forgejo-runner register --no-interactive --token $(RUNNER_SECRET) --name $(RUNNER_NAME) --instance $(FORGEJO_INSTANCE_URL) && break ;
-                sleep 1 ;
-              done ;
-              forgejo-runner generate-config > /data/config.yml ;
-              sed -i -e "s|insecure: false|insecure: true|" /data/config.yml
-              sed -i -e "s|network: .*|network: host|" /data/config.yml ;
-              sed -i -e "s|^  labels: \[\]$|  labels: \[\"self-hosted:host\"\]|" /data/config.yml
-              sed -i -e 's|docker_host: "-"|docker_host: unix:///var/run/docker.sock|' /data/config.yml
-              sed -i -e 's|A_TEST_ENV_NAME_1: a_test_env_value_1|GIT_SSL_NO_VERIFY: "true"|' -e '/A_TEST_ENV_NAME_2: a_test_env_value_2/d' /data/config.yml
+                rm -f /data/config.yml /data/.runner
+                while : ; do
+                  forgejo-runner register --no-interactive --ephemeral --token $(RUNNER_SECRET) --name "$(RUNNER_NAME)-$RANDOM" --instance $(FORGEJO_INSTANCE_URL) && break ;
+                  sleep 1 ;
+                done ;
+                forgejo-runner generate-config > /data/config.yml ;
+                sed -i -e "s|insecure: false|insecure: true|" /data/config.yml
+                sed -i -e "s|network: .*|network: host|" /data/config.yml ;
+                sed -i -e "s|^  labels: \[\]$|  labels: \[\"self-hosted:host\"\]|" /data/config.yml
+                sed -i -e 's|docker_host: "-"|docker_host: unix:///var/run/docker.sock|' /data/config.yml
+                sed -i -e 's|A_TEST_ENV_NAME_1: a_test_env_value_1|GIT_SSL_NO_VERIFY: "true"|' -e '/A_TEST_ENV_NAME_2: a_test_env_value_2/d' /data/config.yml
+                forgejo-runner --config /data/config.yml one-job --wait &
+                child=$! ;
+                wait "$child" ;
+                child="" ;
+              done
           env:
             - name: RUNNER_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: RUNNER_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: runner-secret
-                  key: token-host
             - name: FORGEJO_INSTANCE_URL
               value: https://forgejo.home.arpa
-          resources:
-            limits:
-              cpu: '0.5'
-              ephemeral-storage: 100Mi
-              memory: 64Mi
-            requests:
-              cpu: 100m
-              ephemeral-storage: '0'
-              memory: 64Mi
-          volumeMounts:
-            - name: runner-data-host
-              mountPath: /data
-          securityContext:
-            allowPrivilegeEscalation: true
-            capabilities:
-              drop:
-                - ALL
-            privileged: true
-            readOnlyRootFilesystem: true
-            runAsNonRoot: false
-            seccompProfile:
-              type: RuntimeDefault
-      containers:
-        - name: runner
-          image: ${FULL_IMAGE}
-          imagePullPolicy: Always
-          command:
-            - /bin/bash
-            - -c
-          args: 
-            - |
-              cd /data
-              forgejo-runner --config /data/config.yml daemon
-          env:
-            - name: FORGEJO_INSTANCE_URL
-              value: https://forgejo.home.arpa/
             - name: GIT_SSL_NO_VERIFY
-              value: "true"              
+              value: "true"
             - name: RUNNER_SECRET
               valueFrom:
                 secretKeyRef:
@@ -116,7 +90,7 @@ spec:
             - name: DOCKER_HOST
               value: unix:///var/run/docker.sock
             - name: KUBECONFIG
-              value: /root/.kube/config              
+              value: /root/.kube/config
           volumeMounts:
             - name: runner-data-host
               mountPath: /data

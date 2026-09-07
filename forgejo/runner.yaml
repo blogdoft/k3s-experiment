@@ -40,25 +40,44 @@ spec:
     spec:
       automountServiceAccountToken: false
       restartPolicy: Always
-      initContainers:
-        - name: runner-register
-          image: code.forgejo.org/forgejo/runner:6.4.0
+      containers:
+        - name: runner
+          image: code.forgejo.org/forgejo/runner:13.1.0
           command:
             - /bin/bash
             - -c
           args:
             - |
+              child=""
+              _term() {
+                echo "Caught TERM/INT, forwarding to forgejo-runner..." ;
+                [ -n "$child" ] && kill -TERM "$child" 2>/dev/null ;
+                wait "$child" 2>/dev/null ;
+                exit 0 ;
+              }
+              trap _term TERM INT
+              while ! nc -z localhost 2376 </dev/null ; do
+                echo 'waiting for docker daemon...' ;
+                sleep 5 ;
+                done ;
               while : ; do
-                forgejo-runner register --no-interactive --token $(RUNNER_SECRET) --name $(RUNNER_NAME) --instance $(FORGEJO_INSTANCE_URL) && break ;
-                sleep 1 ;
-              done ;
-              forgejo-runner generate-config > /data/config.yml ;
-              sed -i -e "s|insecure: false|insecure: true|" /data/config.yml
-              sed -i -e "s|network: .*|network: host|" /data/config.yml ;
-              sed -i -e "s|^  labels: \[\]$|  labels: \[\"ubuntu:docker://docker.io/library/node:lts\"\]|" /data/config.yml              
-              sed -i -e "s|^  envs:$$|  envs:\n    DOCKER_HOST: tcp://localhost:2376\n    DOCKER_TLS_VERIFY: 1\n    DOCKER_CERT_PATH: /certs/client|" /data/config.yml ;
-              sed -i -e "s|^  options:|  options: -v /certs/client:/certs/client|" /data/config.yml ;
-              sed -i -e "s|  valid_volumes: \[\]$$|  valid_volumes:\n    - /certs/client|" /data/config.yml
+                rm -f /data/config.yml /data/.runner
+                while : ; do
+                  forgejo-runner register --no-interactive --ephemeral --token $(RUNNER_SECRET) --name "$(RUNNER_NAME)-$RANDOM" --instance $(FORGEJO_INSTANCE_URL) && break ;
+                  sleep 1 ;
+                done ;
+                forgejo-runner generate-config > /data/config.yml ;
+                sed -i -e "s|insecure: false|insecure: true|" /data/config.yml
+                sed -i -e "s|network: .*|network: host|" /data/config.yml ;
+                sed -i -e "s|^  labels: \[\]$|  labels: \[\"ubuntu:docker://docker.io/library/node:lts\"\]|" /data/config.yml
+                sed -i -e "s|^  envs:$$|  envs:\n    DOCKER_HOST: tcp://localhost:2376\n    DOCKER_TLS_VERIFY: 1\n    DOCKER_CERT_PATH: /certs/client|" /data/config.yml ;
+                sed -i -e "s|^  options:|  options: -v /certs/client:/certs/client|" /data/config.yml ;
+                sed -i -e "s|  valid_volumes: \[\]$$|  valid_volumes:\n    - /certs/client|" /data/config.yml
+                forgejo-runner --config /data/config.yml one-job --wait &
+                child=$! ;
+                wait "$child" ;
+                child="" ;
+              done
           env:
             - name: RUNNER_NAME
               valueFrom:
@@ -71,43 +90,7 @@ spec:
                   key: token
             - name: FORGEJO_INSTANCE_URL
               value: http://forgejo.forgejo.svc.cluster.local:3000 # Replace with your Forgejo instance URL
-              # value: https://forgejo.home.arpa # Replace with your Forgejo instance URL              
-          resources:
-            limits:
-              cpu: '0.5'
-              ephemeral-storage: 100Mi
-              memory: 64Mi
-            requests:
-              cpu: 100m
-              ephemeral-storage: '0'
-              memory: 64Mi
-          volumeMounts:
-            - name: runner-data
-              mountPath: /data
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            privileged: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            seccompProfile:
-              type: RuntimeDefault
-      containers:
-        - name: runner
-          image: code.forgejo.org/forgejo/runner:6.4.0
-          command:
-            - /bin/bash
-            - -c
-          args:
-            - |
-              while ! nc -z localhost 2376 </dev/null ; do
-                echo 'waiting for docker daemon...' ;
-                sleep 5 ;
-                done ;
-              forgejo-runner --config /data/config.yml daemon
-          env:
+              # value: https://forgejo.home.arpa # Replace with your Forgejo instance URL
             - name: DOCKER_HOST
               value: tcp://localhost:2376
             - name: DOCKER_CERT_PATH
