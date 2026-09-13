@@ -10,6 +10,7 @@ all:
     k3s_db_name: "k3s"
     k3s_token: '{{ lookup("env", "K3S_TOKEN")}}'
     k3s_bind_address: '{{ lookup("env", "DATABASE_HOST") }}'
+    k3s_data_dir: '{{ lookup("env", "K3S_DATA_DIR") | default("/var/lib/rancher/k3s", true) }}'
 controller:
   hosts:
     morgul:
