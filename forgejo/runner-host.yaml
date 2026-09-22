@@ -48,6 +48,13 @@ spec:
           args:
             - |
               cd /data
+              # Force IPv4: this pod has no IPv6 default route (the LAN only hands out a ULA
+              # locally, there's no internet IPv6 uplink), but DNS for some hosts (e.g.
+              # data.forgejo.org, used by actions/checkout) also returns an AAAA record. Without
+              # this, git/curl try the unreachable IPv6 address first and hang for minutes
+              # (see run #60 of code-ciir-indexer's docker-publish.yml) instead of failing over
+              # to IPv4 immediately.
+              echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6 2>/dev/null || true
               child=""
               _term() {
                 echo "Caught TERM/INT, forwarding to forgejo-runner..." ;
@@ -56,6 +63,10 @@ spec:
                 exit 0 ;
               }
               trap _term TERM INT
+              # The runner's own docker client, and the docker_host below, use /var/run/docker.sock.
+              # That is only a symlink into the /host-run directory mount (see volumeMounts), so it
+              # keeps resolving to the live socket after dockerd restarts.
+              ln -sf /host-run/docker.sock /var/run/docker.sock
               while : ; do
                 rm -f /data/config.yml /data/.runner
                 while : ; do
@@ -66,6 +77,12 @@ spec:
                 sed -i -e "s|insecure: false|insecure: true|" /data/config.yml
                 sed -i -e "s|network: .*|network: host|" /data/config.yml ;
                 sed -i -e "s|^  labels: \[\]$|  labels: \[\"self-hosted:host\"\]|" /data/config.yml
+                # docker_host is also the bind-mount SOURCE the runner hands to the node's dockerd
+                # for every job container (mounted at /var/run/docker.sock inside it), so it must be
+                # a path that exists on the NODE. /host-run only exists inside this pod: pointing
+                # docker_host there makes dockerd create an empty directory /host-run/docker.sock on
+                # the node and the job gets a directory instead of the socket (Testcontainers:
+                # "Failed to connect to Docker endpoint at unix:///var/run/docker.sock").
                 sed -i -e 's|docker_host: "-"|docker_host: unix:///var/run/docker.sock|' /data/config.yml
                 sed -i -e 's|A_TEST_ENV_NAME_1: a_test_env_value_1|GIT_SSL_NO_VERIFY: "true"|' -e '/A_TEST_ENV_NAME_2: a_test_env_value_2/d' /data/config.yml
                 forgejo-runner --config /data/config.yml one-job --wait &
@@ -94,8 +111,16 @@ spec:
           volumeMounts:
             - name: runner-data-host
               mountPath: /data
-            - name: docker-sock-host
-              mountPath: /var/run/docker.sock
+            # The host's /run (not the socket file itself) is mounted, and /var/run/docker.sock in the
+            # pod is a symlink into it (created in the startup script above).
+            # A single-file mount pins the socket's inode at pod start: when dockerd restarts (e.g. an
+            # apt upgrade of docker-ce) it recreates /var/run/docker.sock, and the pod keeps the old,
+            # dead one ("Cannot connect to the Docker daemon") until it is restarted. A directory mount
+            # sees the recreated socket. Read-only is enough: connect() on a socket doesn't need write
+            # access to the filesystem it lives on.
+            - name: docker-sock-dir
+              mountPath: /host-run
+              readOnly: true
             - name: k3s-bin
               mountPath: /usr/local/bin/k3s
             - name: kubeconfig
@@ -117,10 +142,10 @@ spec:
       volumes:
         - name: runner-data-host
           emptyDir: {}
-        - name: docker-sock-host
+        - name: docker-sock-dir
           hostPath:
-            path: /var/run/docker.sock
-            type: Socket
+            path: /run
+            type: Directory
         - name: k3s-bin
           hostPath:
             path: /usr/local/bin/k3s
