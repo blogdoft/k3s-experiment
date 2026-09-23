@@ -160,8 +160,14 @@ export RUNNER_TOKEN=$(kubectl exec -n forgejo deploy/forgejo -- su git -c "forge
 
 echo "Token encontrado:" $RUNNER_TOKEN
 
-envsubst < "$TEMPLATE_FILE_DOCKER" > "$TEMP_FILE_DOCKER"
-envsubst < "$TEMPLATE_FILE_HOST" > "$TEMP_FILE_HOST"
+# Only substitute the placeholders these templates actually define ($RUNNER_TOKEN,
+# ${FULL_IMAGE}). Without this allowlist, envsubst also matches bare $vars used by
+# the bash startup script embedded in each manifest (e.g. $child, $RANDOM), which
+# aren't set in this shell and get silently replaced with an empty string, corrupting
+# the deployed script (e.g. "wait \"\$child\"" becomes "wait \"\"", which never blocks
+# on the runner process and leaks one orphaned forgejo-runner process per loop cycle).
+envsubst '$RUNNER_TOKEN' < "$TEMPLATE_FILE_DOCKER" > "$TEMP_FILE_DOCKER"
+envsubst '$RUNNER_TOKEN ${FULL_IMAGE}' < "$TEMPLATE_FILE_HOST" > "$TEMP_FILE_HOST"
 
 kubectl apply -f $TEMP_FILE_DOCKER -n forgejo
 kubectl apply -f $TEMP_FILE_HOST -n forgejo
