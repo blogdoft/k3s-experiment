@@ -7,14 +7,22 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 echo "Processing export files..."-e
 
-if [ -z "$OAUTH2_PROXY_CLIENT_SECRET" ]; then
-  echo "❌ ERROR: Variable OAUTH2_PROXY_CLIENT_SECRET is not defined"
-  echo "Run: export OAUTH2_PROXY_CLIENT_SECRET='your-secret'"
-  echo "Or: source .env"
-  exit 1
-fi
+REQUIRED_VARS=(
+  OAUTH2_PROXY_CLIENT_SECRET KC_ARGOCD_CLIENT_SECRET
+  KC_K8S_HMAC_SECRET KC_K8S_AES_SECRET KC_K8S_RSA_PRIVATE_KEY KC_K8S_RSA_ENC_PRIVATE_KEY
+  KC_MASTER_HMAC_SECRET KC_MASTER_AES_SECRET KC_MASTER_RSA_PRIVATE_KEY KC_MASTER_RSA_ENC_PRIVATE_KEY
+)
 
-echo "✓ Variable OAUTH2_PROXY_CLIENT_SECRET found"
+for var in "${REQUIRED_VARS[@]}"; do
+  if [ -z "${!var}" ]; then
+    echo "❌ ERROR: Variable $var is not defined"
+    echo "Run: export $var='your-secret'"
+    echo "Or: source .env"
+    exit 1
+  fi
+done
+
+echo "✓ Realm import variables found"
 
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
