@@ -11,7 +11,14 @@ REQUIRED_VARS=(
   OAUTH2_PROXY_CLIENT_SECRET KC_ARGOCD_CLIENT_SECRET
   KC_K8S_HMAC_SECRET KC_K8S_AES_SECRET KC_K8S_RSA_PRIVATE_KEY KC_K8S_RSA_ENC_PRIVATE_KEY
   KC_MASTER_HMAC_SECRET KC_MASTER_AES_SECRET KC_MASTER_RSA_PRIVATE_KEY KC_MASTER_RSA_ENC_PRIVATE_KEY
+  KC_K8S_AMIGO_PASSWORD_SECRET_DATA KC_K8S_SAURON_PASSWORD_SECRET_DATA
+  KC_MASTER_ADMIN_PASSWORD_SECRET_DATA KC_MASTER_SAURON_PASSWORD_SECRET_DATA
 )
+
+# Allowlist for envsubst: the realm exports also contain Keycloak's own ${authBaseUrl},
+# ${emailScopeConsentText}, etc., which must stay literal. Without an allowlist,
+# envsubst would replace them with empty strings.
+ENVSUBST_VARS=""
 
 for var in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!var}" ]; then
@@ -20,6 +27,7 @@ for var in "${REQUIRED_VARS[@]}"; do
     echo "Or: source .env"
     exit 1
   fi
+  ENVSUBST_VARS+=" \${$var}"
 done
 
 echo "✓ Realm import variables found"
@@ -32,7 +40,7 @@ echo "Processing export files..."
 for file in keycloak-export/*.json; do
   filename=$(basename "$file")
   echo "  → $filename"
-  envsubst < "$file" > "$TEMP_DIR/$filename"
+  envsubst "$ENVSUBST_VARS" < "$file" > "$TEMP_DIR/$filename"
 done
 
 echo "Creating ConfigMap in keycloak namespace..."
