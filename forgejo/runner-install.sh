@@ -172,5 +172,8 @@ envsubst '$RUNNER_TOKEN ${FULL_IMAGE}' < "$TEMPLATE_FILE_HOST" > "$TEMP_FILE_HOS
 kubectl apply -f $TEMP_FILE_DOCKER -n forgejo
 kubectl apply -f $TEMP_FILE_HOST -n forgejo
 
+# Garbage-collects the offline ephemeral runners left behind by pod restarts/redeploys
+kubectl apply -f runner-cleanup.yaml -n forgejo
+
 rm $TEMP_FILE_DOCKER
 rm $TEMP_FILE_HOST

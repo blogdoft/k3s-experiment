@@ -1,0 +1,47 @@
+# Every pod start and every finished job registers a new ephemeral runner (see runner.yaml /
+# runner-host.yaml), and runners that never took a job stay in Forgejo as "offline" forever.
+# This job deletes runners that have been offline for 10+ minutes and have no task waiting or
+# running. Uses the same DB credentials the Forgejo deployment gets from forgejo-config/forgejo-secrets.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: forgejo-runner-cleanup
+  namespace: forgejo
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 120
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: postgres:14-alpine
+              envFrom:
+                - configMapRef:
+                    name: forgejo-config
+                - secretRef:
+                    name: forgejo-secrets
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  export PGPASSWORD="$FORGEJO__database__PASSWD"
+                  psql -h "${FORGEJO__database__HOST%%:*}" -p "${FORGEJO__database__HOST##*:}" \
+                    -U "$FORGEJO__database__USER" -d "$FORGEJO__database__NAME" -v ON_ERROR_STOP=1 -c \
+                    "DELETE FROM action_runner
+                      WHERE last_online <= extract(epoch FROM now()) - 600
+                        AND id NOT IN (SELECT runner_id FROM action_task WHERE status IN (5, 6))"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
