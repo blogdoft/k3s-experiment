@@ -67,8 +67,8 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     cd ..
     echo
 
-    echo "Configuring secrets for MinIO"
-    cd ./minio
+    echo "Configuring secrets for Garage"
+    cd ./garage
     ./install.sh
     cd ..
     echo
