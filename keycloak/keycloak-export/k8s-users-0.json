@@ -67,5 +67,19 @@
     },
     "notBefore" : 0,
     "groups" : [ ]
+  }, {
+    "id" : "2beb2e92-677d-4c07-b1d6-9593810ef9fb",
+    "username" : "service-account-code-brain-cli",
+    "emailVerified" : false,
+    "enabled" : true,
+    "createdTimestamp" : 1790392143749,
+    "totp" : false,
+    "serviceAccountClientId" : "code-brain-cli",
+    "credentials" : [ ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "default-roles-k8s" ],
+    "notBefore" : 0,
+    "groups" : [ ]
   } ]
 }
