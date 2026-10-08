@@ -121,6 +121,13 @@ Most `<component>/install.sh` or `configure.sh` scripts follow the same shape: `
 - `install.sh` exports that CA to `./home-arpa-ca.crt` (gitignored) for local machine/browser trust.
 - `playbooks/trust-ca-root.yaml` distributes the same CA to Docker and k3s/containerd on cluster nodes, specifically so images can be pushed to/pulled from the self-hosted Forgejo container registry (`forgejo.home.arpa`).
 
+**Reminder — when the CA is regenerated or any certificate/trust change is involved**, the CA is copied to several places that go stale (the Forgejo runners go offline: `ImagePullBackOff` with `x509: certificate signed by unknown authority ... verification error`, or `Cannot ping the Forgejo instance server`). Always check and reapply all of these, in order:
+
+1. `ansible-playbook playbooks/trust-ca-root.yaml -i inventory.yaml` — nodes' Docker + containerd (restarts Docker and K3s, which interrupts running jobs).
+2. Re-export the CA to `./home-arpa-ca.crt` (`kubectl -n cert-manager get secret home-arpa-ca -o jsonpath='{.data.tls\.crt}' | base64 -d`).
+3. Local machine trust (needs sudo, user runs it): copy it to `/etc/docker/certs.d/forgejo.home.arpa/ca.crt` and `/usr/local/share/ca-certificates/`, `update-ca-certificates`, restart Docker. Verify fingerprints match the cluster's.
+4. Rebuild and push the runner image, which bakes the CA in (`forgejo/Dockerfile`), and redeploy the runners: `cd forgejo && ./runner-install.sh` (interactive, needs the Forgejo password — the user runs it).
+
 ### Sensitive Files (all gitignored)
 
 - `.env` — all credentials

@@ -8,4 +8,6 @@ kubectl create namespace observability --dry-run=client -o yaml | kubectl apply 
 
 kubectl create secret generic grafana-admin -n observability \
   --from-literal=admin-user=$ANSIBLE_MORGUL \
-  --from-literal=admin-password=$ANSIBLE_PASSWORD
+  --from-literal=admin-password=$ANSIBLE_PASSWORD --dry-run=client -o yaml | kubectl apply -f -
+
+envsubst < grafana-contactpoints-secret.yaml | kubectl apply -f -
