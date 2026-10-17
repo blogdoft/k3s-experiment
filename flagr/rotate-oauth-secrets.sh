@@ -68,7 +68,7 @@ kubectl -n flagr rollout restart deployment/oauth2-proxy
 kubectl -n flagr rollout status deployment/oauth2-proxy --timeout=180s
 
 echo "Checking the new client secret against Keycloak (an invalid_grant answer means it was accepted)..."
-answer="$(curl -sk -X POST "https://keycloak.home.arpa/realms/k8s/protocol/openid-connect/token" \
+answer="$(curl -sk -X POST "https://keycloak.blogdoft.dev/realms/k8s/protocol/openid-connect/token" \
   --data-urlencode "grant_type=authorization_code" \
   --data-urlencode "client_id=flagr" \
   --data-urlencode "client_secret=$new_client_secret" \

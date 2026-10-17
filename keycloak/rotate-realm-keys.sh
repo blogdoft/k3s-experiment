@@ -9,7 +9,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd -- "$script_dir/.." && pwd)"
 env_file="$project_dir/.env"
 export_dir="$script_dir/keycloak-export"
-keycloak_url="${KC_URL:-https://keycloak.home.arpa}"
+keycloak_url="${KC_URL:-https://keycloak.blogdoft.dev}"
 
 # shellcheck source=/dev/null
 source "$env_file"

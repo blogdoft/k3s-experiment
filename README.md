@@ -143,7 +143,7 @@ All services resolve to `morgul` (`192.168.1.212`) via a wildcard `*.home.arpa` 
 ```
 192.168.1.212  argocd.home.arpa
 192.168.1.212  longhorn.home.arpa
-192.168.1.212  keycloak.home.arpa
+192.168.1.212  keycloak.blogdoft.dev
 192.168.1.212  openbao.home.arpa
 192.168.1.212  rancher.home.arpa
 192.168.1.212  flagr.home.arpa
@@ -206,7 +206,7 @@ Patches Longhorn to allow deletion, then runs the k3s uninstall script on `morgu
 |---------|-----|
 | ArgoCD | `https://argocd.home.arpa` |
 | Longhorn | `https://longhorn.home.arpa` |
-| Keycloak | `https://keycloak.home.arpa` |
+| Keycloak | `https://keycloak.blogdoft.dev` |
 | OpenBao | `https://openbao.home.arpa` |
 | Rancher | `https://rancher.home.arpa` |
 | Flagr | `https://flagr.home.arpa` |
