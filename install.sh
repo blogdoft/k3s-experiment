@@ -96,6 +96,12 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     ./install.sh
     cd ..
     echo
+
+    echo "Configuring secrets for Longhorn"
+    cd ./longhorn
+    ./install.sh
+    cd ..
+    echo
 else
     echo "Skipping secrets creation"
 fi
