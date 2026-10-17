@@ -33,6 +33,10 @@ FORGEJO_DB_PASSWORD=...
 OWUI_DATABASE=...
 OWUI_USER=...
 OWUI_DBPASS=...
+IMMICH_DB_NAME=...
+IMMICH_DB_USER=...
+IMMICH_DB_PASSWORD=...        # no special characters (goes into a URL)
+IMMICH_REDIS_PASSWORD=...     # password of the shared redis-server
 ```
 
 `install.sh` and every component script `source .env` (or `../.env` from a subdirectory) — always run from the repo root, or from the component directory as documented in that script.
@@ -73,6 +77,8 @@ cd flagr && ./install.sh        # recreate flagr postgres-credentials secret
 cd flagr && ./postinstall.sh    # recreate oauth2-proxy secrets (queries Keycloak DB for client secret)
 cd forgejo && ./configure.sh    # recreate forgejo DB/user, apply configmap
 cd forgejo && ./runner-install.sh   # optionally build+push forgejo-runner image, (re)deploy Forgejo Actions runners
+cd nvidia && ./install.sh       # label morgul and install the NVIDIA device plugin (Helm, GPU time-slicing x4) so pods can request nvidia.com/gpu
+cd immich && ./install.sh       # create immich DB/role if missing (never dropped), enable vchord, apply immich-secrets (DB_URL, REDIS_PASSWORD)
 cd open-webui && ./install.sh   # recreate open-webui DB/user, apply secrets
 cd openbao && POD_NAME=openbao-0 ./init.sh   # initialize and unseal OpenBao
 cd rancher && ./install.sh      # wait for Rancher, pin to morgul node
@@ -91,16 +97,17 @@ Each stage is gated by a y/n prompt, in this order — later stages assume earli
 
 1. `playbooks/prepare-server.yaml` — OS prep on `morgul` (one-time)
 2. `databases/configure.sh` then `playbooks/install-controller.yaml` — drops/recreates the `flagr`/`k3s`/`kc-cluster` DBs, installs k3s, copies kubeconfig (`scp sauron@morgul:/etc/rancher/k3s/k3s.yaml ~/.kube/config`)
-3. Secrets stage: `flagr/install.sh`, `kubectl apply -f dns/` (CoreDNS forward for `home.arpa`), `keycloak/install.sh`, `forgejo/configure.sh`, `open-webui/install.sh`
-4. `argocd/install.sh` — installs ArgoCD + ingress, registers the `k3s-apps` repo, bootstraps the root app; prints the initial admin password
-5. Manual pause: tag the Longhorn disk/node `ssd` at `https://longhorn.home.arpa`
-6. Manual pause or `openbao/init.sh` — unseal OpenBao at `https://openbao.home.arpa`
-7. Manual pause: verify the Keycloak realm import and that ArgoCD apps are synced
-8. `rancher/install.sh` — pins Rancher to `morgul`
-9. Exports the CA (`kubectl -n cert-manager get secret home-arpa-ca`) to `./home-arpa-ca.crt` and installs it into the local machine's trust store (`update-ca-certificates`)
-10. Optional: `playbooks/trust-ca-root.yaml` — distributes the CA to cluster nodes so Docker/containerd trust the Forgejo registry
-11. Optional: `forgejo/runner-install.sh` — build+push the `forgejo-runner-custom` image and deploy Forgejo Actions runners (needs step 10 done first)
-12. `flagr/postinstall.sh` — queries the Keycloak DB for the `flagr` client secret and creates `oauth2-proxy-secrets`
+3. Secrets stage: `flagr/install.sh`, `kubectl apply -f dns/` (CoreDNS forward for `home.arpa`), `keycloak/install.sh`, `forgejo/configure.sh`, `open-webui/install.sh`, `immich/install.sh`
+4. `nvidia/install.sh` — optional: installs the NVIDIA device plugin via Helm (needs the host driver and `nvidia-container-runtime`, which makes k3s create the `nvidia` RuntimeClass). Not managed by ArgoCD
+5. `argocd/install.sh` — installs ArgoCD + ingress, registers the `k3s-apps` repo, bootstraps the root app; prints the initial admin password
+6. Manual pause: tag the Longhorn disk/node `ssd` at `https://longhorn.home.arpa`
+7. Manual pause or `openbao/init.sh` — unseal OpenBao at `https://openbao.home.arpa`
+8. Manual pause: verify the Keycloak realm import and that ArgoCD apps are synced
+9. `rancher/install.sh` — pins Rancher to `morgul`
+10. Exports the CA (`kubectl -n cert-manager get secret home-arpa-ca`) to `./home-arpa-ca.crt` and installs it into the local machine's trust store (`update-ca-certificates`)
+11. Optional: `playbooks/trust-ca-root.yaml` — distributes the CA to cluster nodes so Docker/containerd trust the Forgejo registry
+12. Optional: `forgejo/runner-install.sh` — build+push the `forgejo-runner-custom` image and deploy Forgejo Actions runners (needs step 10 done first)
+13. `flagr/postinstall.sh` — queries the Keycloak DB for the `flagr` client secret and creates `oauth2-proxy-secrets`
 
 ### K3s Datastore
 

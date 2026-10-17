@@ -3,6 +3,12 @@
   become: yes
   gather_facts: no
   tasks:
+    - name: Disable Apache web server
+      ansible.builtin.systemd:
+        name: apache2
+        state: stopped
+        enabled: false
+
     - name: Installing git-all
       ansible.builtin.apt:
         pkg:

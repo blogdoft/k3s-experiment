@@ -67,6 +67,18 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     cd ..
     echo
 
+    echo "Configuring database and secrets for Immich"
+    cd ./immich
+    ./install.sh
+    cd ..
+    echo
+
+    echo "Configuring Cloud Flare secrets"
+    cd ./cloudflare-tunnel
+    ./install.sh
+    cd ..
+    echo
+    
     echo "Configuring secrets for Garage"
     cd ./garage
     ./install.sh
@@ -80,6 +92,19 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     echo
 else
     echo "Skipping secrets creation"
+fi
+echo "#####################################################################################"
+echo
+
+read -r -p "Do you want to install the NVIDIA device plugin (GPU on morgul)? (y/yes to confirm): " install_k3s
+if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+    echo "Installing NVIDIA device plugin..."
+    cd ./nvidia
+    ./install.sh
+    cd ..
+    echo "... NVIDIA device plugin installed successfully!"
+else
+    echo "Skipping NVIDIA device plugin. You may need to run ./nvidia/install.sh"
 fi
 echo "#####################################################################################"
 echo

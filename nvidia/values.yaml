@@ -1,0 +1,14 @@
+runtimeClassName: nvidia
+
+config:
+  default: time-slicing
+  map:
+    time-slicing: |-
+      version: v1
+      sharing:
+        timeSlicing:
+          renameByDefault: false
+          failRequestsGreaterThanOne: false
+          resources:
+            - name: nvidia.com/gpu
+              replicas: 4
