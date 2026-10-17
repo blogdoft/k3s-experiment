@@ -90,6 +90,12 @@ if [[ "$install_k3s" =~ ^([yY]|[yY][eE][sS])$ ]]; then
     ./install.sh
     cd ..
     echo
+
+    echo "Configuring secrets for Kafka UI"
+    cd ./kafka-ui
+    ./install.sh
+    cd ..
+    echo
 else
     echo "Skipping secrets creation"
 fi
