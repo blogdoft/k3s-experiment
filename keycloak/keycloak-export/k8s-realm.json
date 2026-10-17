@@ -718,7 +718,7 @@
       "post.logout.redirect.uris" : "+",
       "oauth2.device.authorization.grant.enabled" : "false",
       "display.on.consent.screen" : "false",
-      "pkce.code.challenge.method" : "S256",
+      "pkce.code.challenge.method" : "",
       "backchannel.logout.revoke.offline.tokens" : "false",
       "dpop.bound.access.tokens" : "false"
     },
