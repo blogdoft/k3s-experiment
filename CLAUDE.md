@@ -135,6 +135,10 @@ Most `<component>/install.sh` or `configure.sh` scripts follow the same shape: `
 3. Local machine trust (needs sudo, user runs it): copy it to `/etc/docker/certs.d/forgejo.home.arpa/ca.crt` and `/usr/local/share/ca-certificates/`, `update-ca-certificates`, restart Docker. Verify fingerprints match the cluster's.
 4. Rebuild and push the runner image, which bakes the CA in (`forgejo/Dockerfile`), and redeploy the runners: `cd forgejo && ./runner-install.sh` (interactive, needs the Forgejo password — the user runs it).
 
+### Secret scanning (gitleaks)
+
+`.gitleaks.toml` extends the default ruleset with repo-specific rules (`.env` variables with literal values, Cloudflare Tunnel `credentials.json`, OpenBao tokens, Postgres URLs with inline passwords, and files that must never be committed). Placeholders (`<...>`, `${VAR}`) and `.env.template` are allowlisted. The pre-commit hook lives in `.githooks/`; enable it once per clone with `./.githooks/install.sh` (uses the local `gitleaks` binary, falling back to the Docker image). When adding a new secret variable to `.env.template`, add its name to the `env-secret-assignment` rule.
+
 ### Sensitive Files (all gitignored)
 
 - `.env` — all credentials

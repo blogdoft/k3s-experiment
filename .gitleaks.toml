@@ -1,0 +1,49 @@
+title = "k3s-experiment gitleaks config"
+
+[extend]
+useDefault = true
+
+# Variáveis do .env.template com valor literal (ou seja, que não é placeholder <...>, ${...} ou vazio).
+[[rules]]
+id = "env-secret-assignment"
+description = "Variável sensível do .env com valor literal"
+regex = '''(?i)\b(?:export\s+)?(?:ANSIBLE_PASSWORD|DATABASE_PASSWORD|K3S_TOKEN|K3S_DB_PASSWORD|OAUTH2_PROXY_COOKIE_SECRET|OAUTH2_PROXY_CLIENT_SECRET|KC_[A-Z]+_CLIENT_SECRET|[A-Z0-9]+_DB_PASSWORD|[A-Z0-9]+_DBPASS|IMMICH_REDIS_PASSWORD|TELEGRAM_BOT_TOKEN|CLOUDFLARE_[A-Z_]*TOKEN|[A-Z0-9_]*(?:SECRET_KEY|ACCESS_KEY))\s*(?:=|:\s+)\s*["']?([^\s"'<$#][^\s"'#]*)'''
+secretGroup = 1
+keywords = ["password", "dbpass", "token", "secret", "access_key", "secret_key"]
+
+[[rules]]
+id = "cloudflared-tunnel-credentials"
+description = "credentials.json do Cloudflare Tunnel"
+regex = '''(?i)"TunnelSecret"\s*:\s*"([A-Za-z0-9+/=_-]{16,})"'''
+secretGroup = 1
+keywords = ["tunnelsecret"]
+
+[[rules]]
+id = "openbao-token"
+description = "Token do OpenBao/Vault (root token ou service token)"
+regex = '''\b(hvs\.[A-Za-z0-9_-]{20,}|hvb\.[A-Za-z0-9_-]{20,}|s\.[A-Za-z0-9]{24})\b'''
+keywords = ["hvs.", "hvb.", "s."]
+
+[[rules]]
+id = "postgres-url-with-password"
+description = "URL de conexão com senha literal"
+regex = '''(?i)postgres(?:ql)?://[^:/\s@"']+:([^@\s"'$<{}]+)@'''
+secretGroup = 1
+keywords = ["postgres"]
+
+[[rules]]
+id = "forbidden-sensitive-file"
+description = "Arquivo que nunca deve ser versionado (gerado por scripts de bootstrap)"
+path = '''(?i)(^|/)(\.env|openbao-init\.json|openbao-root-token\.txt|openbao-unseal-keys\.txt|repo-secret\.generated\.yaml|[^/]*-temp\.yaml|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json|credentials\.json)$'''
+
+[allowlist]
+description = "Templates e documentação só contêm placeholders"
+paths = [
+  '''(^|/)\.env\.template$''',
+  '''^\.gitleaks\.toml$''',
+  '''^docs/.*\.md$''',
+]
+regexes = [
+  '''\$\{?[A-Z_][A-Z0-9_]*\}?''',
+  '''<[^>\n]+>''',
+]

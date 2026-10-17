@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Bloqueia o commit se houver secrets no que está staged. Ative com: ./.githooks/install.sh
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+config="$repo_root/.gitleaks.toml"
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --config "$config" --verbose "$repo_root"
+elif command -v docker >/dev/null 2>&1; then
+  docker run --rm -v "$repo_root:/repo" -w /repo zricethezav/gitleaks:latest \
+    git --pre-commit --staged --redact --config /repo/.gitleaks.toml --verbose /repo
+else
+  echo "gitleaks não encontrado (nem docker). Instale: https://github.com/gitleaks/gitleaks#installing" >&2
+  exit 1
+fi
