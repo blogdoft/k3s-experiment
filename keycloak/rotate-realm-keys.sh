@@ -2,7 +2,7 @@
 # Rotates the RSA signing (rsa-generated) and encryption (rsa-enc-generated) keys of the k8s and master
 # realms through the Keycloak Admin API, then refreshes the recovery files: the KC_*_RSA_* variables in
 # .env and the public certificates in keycloak-export/*-realm.json. Secret values are never printed.
-# Requires KC_USER and KC_PASS (master realm admin) in .env. Existing sessions and tokens become invalid.
+# Requires KC_USER and KC_PASSWORD (master realm admin) in .env. Existing sessions and tokens become invalid.
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,7 +14,7 @@ keycloak_url="${KC_URL:-https://keycloak.home.arpa}"
 # shellcheck source=/dev/null
 source "$env_file"
 
-for var in KC_USER KC_PASS K3S_DB_USER K3S_DB_PASSWORD DATABASE_HOST; do
+for var in KC_USER KC_PASSWORD K3S_DB_USER K3S_DB_PASSWORD DATABASE_HOST; do
   if [[ -z "${!var:-}" ]]; then
     echo "Error: $var is not defined in .env." >&2
     exit 1
@@ -37,7 +37,7 @@ kc_curl() {
 admin_token() {
   kc_curl -X POST "$keycloak_url/realms/master/protocol/openid-connect/token" \
     -d grant_type=password -d client_id=admin-cli \
-    --data-urlencode "username=$KC_USER" --data-urlencode "password=$KC_PASS" \
+    --data-urlencode "username=$KC_USER" --data-urlencode "password=$KC_PASSWORD" \
     | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])'
 }
 
