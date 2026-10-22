@@ -14,7 +14,12 @@
       ],
       "realmRoles": [
         "default-roles-service-management"
-      ]
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "realm-admin"
+        ]
+      }
     }
   ]
 }
