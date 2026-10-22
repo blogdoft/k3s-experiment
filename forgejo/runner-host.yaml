@@ -132,7 +132,7 @@ spec:
             runAsGroup: 0          
           resources:
             limits:
-              cpu: '1'
+              cpu: '2'
               ephemeral-storage: 3Gi
               memory: 4Gi
             requests:

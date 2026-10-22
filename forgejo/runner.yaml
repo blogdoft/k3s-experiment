@@ -99,7 +99,7 @@ spec:
               value: '1'
           resources:
             limits:
-              cpu: '1'
+              cpu: '2'
               ephemeral-storage: 3Gi
               memory: 4Gi
             requests:
@@ -137,7 +137,7 @@ spec:
               value: /certs
           resources:
             limits:
-              cpu: '1'
+              cpu: '2'
               ephemeral-storage: 3Gi
               memory: 4Gi
             requests:
