@@ -11,7 +11,7 @@ REQUIRED_VARS=(
   OAUTH2_PROXY_CLIENT_SECRET KC_ARGOCD_CLIENT_SECRET KC_GRAFANA_CLIENT_SECRET KC_KAFKA_UI_CLIENT_SECRET KC_LONGHORN_CLIENT_SECRET KC_CODE_BRAIN_CLI_CLIENT_SECRET
   KC_K8S_HMAC_SECRET KC_K8S_AES_SECRET KC_K8S_RSA_PRIVATE_KEY KC_K8S_RSA_ENC_PRIVATE_KEY
   KC_MASTER_HMAC_SECRET KC_MASTER_AES_SECRET KC_MASTER_RSA_PRIVATE_KEY KC_MASTER_RSA_ENC_PRIVATE_KEY
-  KC_K8S_SAURON_PASSWORD_SECRET_DATA KC_MASTER_SAURON_PASSWORD_SECRET_DATA
+  KC_K8S_SAURON_PASSWORD_SECRET_DATA KC_MASTER_SAURON_PASSWORD_SECRET_DATA KC_SERVICE_MANAGEMENT_SAURON_PASSWORD
 )
 
 # Allowlist for envsubst: the realm exports also contain Keycloak's own ${authBaseUrl},
@@ -48,10 +48,11 @@ kubectl create namespace keycloak \
     --save-config \
     --dry-run=client -o yaml | kubectl apply -f -
 
+# Server-side apply: with the service-management realm the data outgrew the 256KiB limit of the
+# last-applied-configuration annotation that client-side apply (and --save-config) writes.
 kubectl -n keycloak create configmap keycloak-realm-import \
-    --save-config \
     --from-file="$TEMP_DIR" \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --dry-run=client -o yaml | kubectl apply --server-side --force-conflicts --field-manager=keycloak-install -f -
 
 echo "Creating database secret in keycloak namespace..."
 
